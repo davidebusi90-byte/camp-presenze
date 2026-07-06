@@ -599,9 +599,9 @@ function bindStudentCardEvents() {
             if (student) {
                 student.preCamp = e.target.checked;
                 
-                // Se attiva il preCamp e non ha un orario d'ingresso impostato, suggeriamo l'orario di default
+                // Se attiva il preCamp e non ha un orario d'ingresso impostato, suggeriamo l'orario di default (07:45)
                 if (student.preCamp && !student.entrataAnticipata) {
-                    student.entrataAnticipata = '08:00';
+                    student.entrataAnticipata = '07:45';
                 } else if (!student.preCamp) {
                     // se disattiva il preCamp, eliminiamo l'orario d'ingresso anticipato
                     student.entrataAnticipata = '';
@@ -623,9 +623,9 @@ function bindStudentCardEvents() {
             if (student) {
                 student.postCamp = e.target.checked;
                 
-                // Se attiva il postCamp e non ha un orario di uscita impostato, suggeriamo l'orario di default
+                // Se attiva il postCamp e non ha un orario di uscita impostato, suggeriamo l'orario di default (17:30)
                 if (student.postCamp && !student.uscitaAnticipata) {
-                    student.uscitaAnticipata = '13:00';
+                    student.uscitaAnticipata = '17:30';
                 } else if (!student.postCamp) {
                     student.uscitaAnticipata = '';
                 }

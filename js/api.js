@@ -17,16 +17,16 @@ const DEFAULTS = {
 
 // Dati mock iniziali (fallback offline)
 const MOCK_STUDENTS = [
-    { id: '1', nome: 'Sofia', cognome: 'Rossi', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: false },
-    { id: '2', nome: 'Leonardo', cognome: 'Bianchi', categoria: 'bambino', preCamp: true, postCamp: false, entrataAnticipata: '08:00', uscitaAnticipata: '', presente: true },
-    { id: '3', nome: 'Giulia', cognome: 'Ferrari', categoria: 'baby', preCamp: false, postCamp: true, entrataAnticipata: '', uscitaAnticipata: '12:30', presente: true },
-    { id: '4', nome: 'Francesco', cognome: 'Russo', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: false },
-    { id: '5', nome: 'Aurora', cognome: 'Esposito', categoria: 'baby', preCamp: true, postCamp: true, entrataAnticipata: '07:45', uscitaAnticipata: '13:00', presente: true },
-    { id: '6', nome: 'Lorenzo', cognome: 'Romano', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: false },
-    { id: '7', nome: 'Alice', cognome: 'Ricci', categoria: 'baby', preCamp: true, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: false },
+    { id: '1', nome: 'Sofia', cognome: 'Rossi', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null },
+    { id: '2', nome: 'Leonardo', cognome: 'Bianchi', categoria: 'bambino', preCamp: true, postCamp: false, entrataAnticipata: '07:45', uscitaAnticipata: '', presente: true },
+    { id: '3', nome: 'Giulia', cognome: 'Ferrari', categoria: 'baby', preCamp: false, postCamp: true, entrataAnticipata: '', uscitaAnticipata: '17:30', presente: true },
+    { id: '4', nome: 'Francesco', cognome: 'Russo', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null },
+    { id: '5', nome: 'Aurora', cognome: 'Esposito', categoria: 'baby', preCamp: true, postCamp: true, entrataAnticipata: '07:45', uscitaAnticipata: '17:30', presente: true },
+    { id: '6', nome: 'Lorenzo', cognome: 'Romano', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null },
+    { id: '7', nome: 'Alice', cognome: 'Ricci', categoria: 'baby', preCamp: true, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null },
     { id: '8', nome: 'Mattia', cognome: 'Bruno', categoria: 'bambino', preCamp: false, postCamp: true, entrataAnticipata: '', uscitaAnticipata: '', presente: true },
-    { id: '9', nome: 'Emma', cognome: 'Marino', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: false },
-    { id: '10', nome: 'Davide', cognome: 'Gallo', categoria: 'bambino', preCamp: true, postCamp: true, entrataAnticipata: '08:15', uscitaAnticipata: '', presente: true }
+    { id: '9', nome: 'Emma', cognome: 'Marino', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null },
+    { id: '10', nome: 'Davide', cognome: 'Gallo', categoria: 'bambino', preCamp: true, postCamp: true, entrataAnticipata: '07:45', uscitaAnticipata: '17:30', presente: true }
 ];
 
 const MOCK_ACTIVITIES = {
