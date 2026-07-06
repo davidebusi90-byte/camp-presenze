@@ -19,6 +19,17 @@ const AppState = {
 const GIORNI_SETTIMANA = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 const MESI_ANNO = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
 
+// Helper per aggiornare in sicurezza un'icona Lucide che è stata convertita in SVG
+function setLucideIcon(parentElement, newIconName) {
+    const existingIcon = parentElement.querySelector('i') || parentElement.querySelector('svg');
+    if (existingIcon) {
+        const newIcon = document.createElement('i');
+        newIcon.setAttribute('data-lucide', newIconName);
+        existingIcon.replaceWith(newIcon);
+        lucide.createIcons();
+    }
+}
+
 // DOCUMENT READY / INIZIALIZZAZIONE
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
@@ -140,7 +151,11 @@ function registerEventListeners() {
     const datePicker = document.getElementById('date-picker');
     
     dateDisplayContainer.addEventListener('click', () => {
-        datePicker.showPicker(); // Forza l'apertura del calendario nativo del browser
+        try {
+            datePicker.showPicker(); // Forza l'apertura del calendario nativo del browser
+        } catch (err) {
+            datePicker.click(); // Fallback per vecchi browser
+        }
     });
 
     datePicker.addEventListener('change', async (e) => {
@@ -538,15 +553,14 @@ function bindStudentCardEvents() {
                     card.classList.add('present');
                     e.currentTarget.classList.add('present');
                     e.currentTarget.querySelector('span').innerText = 'Presente';
-                    e.currentTarget.querySelector('i').setAttribute('data-lucide', 'check');
+                    setLucideIcon(e.currentTarget, 'check');
                 } else {
                     card.classList.remove('present');
                     e.currentTarget.classList.remove('present');
                     e.currentTarget.querySelector('span').innerText = 'Assente';
-                    e.currentTarget.querySelector('i').setAttribute('data-lucide', 'square');
+                    setLucideIcon(e.currentTarget, 'square');
                 }
                 
-                lucide.createIcons();
                 updateStatsSummary();
             }
         });
@@ -753,13 +767,12 @@ function updateSyncStatusBadge() {
     if (isOnline) {
         badge.className = 'sync-badge online';
         badge.querySelector('span').innerText = 'Online';
-        badge.querySelector('i').setAttribute('data-lucide', 'cloud-lightning');
+        setLucideIcon(badge, 'cloud-lightning');
     } else {
         badge.className = 'sync-badge offline';
         badge.querySelector('span').innerText = 'Local (Offline)';
-        badge.querySelector('i').setAttribute('data-lucide', 'cloud-off');
+        setLucideIcon(badge, 'cloud-off');
     }
-    lucide.createIcons();
 }
 
 // Aggiorna i dati visibili nella sezione Impostazioni

@@ -636,18 +636,23 @@ input, button, select, textarea {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex: 1;
+    min-width: 0;
+    padding-right: 8px;
 }
 
 .student-name {
     font-size: 16px;
     font-weight: 700;
     color: var(--text-main);
+    word-break: break-word;
 }
 
 .badges-row {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap; /* Evita che i badge escano dallo schermo su mobile */
 }
 
 /* Badge categoria Baby o Bambino */
@@ -886,6 +891,7 @@ input, button, select, textarea {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    overflow: hidden;
 }
 
 .activity-time-badge {
@@ -910,6 +916,7 @@ input, button, select, textarea {
     font-size: 15px;
     font-weight: 700;
     color: var(--text-main);
+    word-break: break-word;
 }
 
 .btn-delete-activity {
@@ -974,6 +981,7 @@ input, button, select, textarea {
     display: flex;
     gap: 10px;
     margin-top: 6px;
+    flex-wrap: wrap; /* Impedisce la fuoriuscita dei bottoni su piccoli schermi */
 }
 
 /* ==========================================================================
