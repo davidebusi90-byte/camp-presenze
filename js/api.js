@@ -167,8 +167,8 @@ const CampAPI = {
                         nome: allievo.nome,
                         cognome: allievo.cognome,
                         categoria: allievo.categoria,
-                        // Se c'è un record di presenza, usa i suoi valori, altrimenti imposta i default
-                        presente: recordPresenza ? recordPresenza.presente : false,
+                        // Se c'è un record di presenza, usa i suoi valori, altrimenti imposta i default (null = Neutro)
+                        presente: recordPresenza ? recordPresenza.presente : null,
                         preCamp: recordPresenza ? recordPresenza.pre_camp : false,
                         postCamp: recordPresenza ? recordPresenza.post_camp : false,
                         entrataAnticipata: recordPresenza ? recordPresenza.entrata_anticipata : '',
@@ -187,8 +187,10 @@ const CampAPI = {
         } else {
             const freshDayData = MOCK_STUDENTS.map(s => ({
                 ...s,
-                presente: false,
-                entrataAnticipata: s.preCamp ? '08:00' : '',
+                presente: null, // Neutro di default
+                preCamp: false,
+                postCamp: false,
+                entrataAnticipata: '',
                 uscitaAnticipata: ''
             }));
             

@@ -341,6 +341,17 @@ function registerEventListeners() {
         activityModal.classList.add('hidden');
         await loadActivitiesData();
     });
+
+    // 9. Stampa liste PDF al click sui box di riepilogo
+    const statCards = document.querySelectorAll('.stat-card.clickable');
+    statCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            const printType = e.currentTarget.getAttribute('data-print-type');
+            if (printType) {
+                printList(printType);
+            }
+        });
+    });
 }
 
 // ==========================================================================
@@ -439,9 +450,9 @@ function renderStudentsList() {
     } else if (AppState.activeFilter === 'bambino') {
         filteredStudents = filteredStudents.filter(s => s.categoria === 'bambino');
     } else if (AppState.activeFilter === 'present') {
-        filteredStudents = filteredStudents.filter(s => s.presente);
+        filteredStudents = filteredStudents.filter(s => s.presente === true);
     } else if (AppState.activeFilter === 'absent') {
-        filteredStudents = filteredStudents.filter(s => !s.presente);
+        filteredStudents = filteredStudents.filter(s => s.presente === false);
     }
 
     // Caso lista vuota
@@ -461,7 +472,11 @@ function renderStudentsList() {
     
     filteredStudents.forEach(student => {
         const card = document.createElement('div');
-        card.className = `student-card ${student.presente ? 'present' : ''}`;
+        let cardStateClass = 'neutral';
+        if (student.presente === true) cardStateClass = 'present';
+        else if (student.presente === false) cardStateClass = 'absent';
+        
+        card.className = `student-card ${cardStateClass}`;
         
         // Verifica orari speciali da mostrare come badge
         let specialTimesHtml = '';
@@ -491,10 +506,14 @@ function renderStudentsList() {
                     </div>
                 </div>
                 
-                <button class="presence-toggle-btn ${student.presente ? 'present' : ''}" data-student-id="${student.id}">
-                    <i data-lucide="${student.presente ? 'check' : 'square'}"></i>
-                    <span>${student.presente ? 'Presente' : 'Assente'}</span>
-                </button>
+                <div class="presence-buttons-group">
+                    <button class="presence-btn btn-present ${student.presente === true ? 'active' : ''}" data-student-id="${student.id}" data-state="present" title="Segna Presente">
+                        <i data-lucide="check"></i>
+                    </button>
+                    <button class="presence-btn btn-absent ${student.presente === false ? 'active' : ''}" data-student-id="${student.id}" data-state="absent" title="Segna Assente">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="student-controls">
@@ -534,33 +553,38 @@ function renderStudentsList() {
 function bindStudentCardEvents() {
     const dateStr = formatDateToISO(AppState.currentDate);
 
-    // Toggle Presenza Principale
-    const presenceBtns = document.querySelectorAll('.presence-toggle-btn');
+    // Pulsanti Presenza (Presente / Assente)
+    const presenceBtns = document.querySelectorAll('.presence-btn');
     presenceBtns.forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const studentId = e.currentTarget.getAttribute('data-student-id');
+            const targetState = e.currentTarget.getAttribute('data-state'); // 'present' o 'absent'
             const student = AppState.students.find(s => s.id === studentId);
             
             if (student) {
-                student.presente = !student.presente;
+                // Determina il nuovo stato di presenza (se clicca quello già attivo, torna a null/Neutro)
+                let newState = null;
+                if (targetState === 'present') {
+                    newState = (student.presente === true) ? null : true;
+                } else if (targetState === 'absent') {
+                    newState = (student.presente === false) ? null : false;
+                }
+                
+                student.presente = newState;
+
+                // Se l'allievo diventa assente o neutro, azzeriamo pre/post camp e orari in locale per pulizia
+                if (newState !== true) {
+                    student.preCamp = false;
+                    student.postCamp = false;
+                    student.entrataAnticipata = '';
+                    student.uscitaAnticipata = '';
+                }
                 
                 // Salva lo stato
                 await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
                 
-                // Aggiorna l'aspetto grafico della singola card e i totali senza fare full-reload
-                const card = e.currentTarget.closest('.student-card');
-                if (student.presente) {
-                    card.classList.add('present');
-                    e.currentTarget.classList.add('present');
-                    e.currentTarget.querySelector('span').innerText = 'Presente';
-                    setLucideIcon(e.currentTarget, 'check');
-                } else {
-                    card.classList.remove('present');
-                    e.currentTarget.classList.remove('present');
-                    e.currentTarget.querySelector('span').innerText = 'Assente';
-                    setLucideIcon(e.currentTarget, 'square');
-                }
-                
+                // Ricarica la lista per applicare correttamente classi e stati disabilitati
+                renderStudentsList();
                 updateStatsSummary();
             }
         });
@@ -745,18 +769,19 @@ function updateDateDisplay() {
 // Aggiorna i contatori del riepilogo statistico superiore
 function updateStatsSummary() {
     const total = AppState.students.length;
-    const present = AppState.students.filter(s => s.presente).length;
+    const present = AppState.students.filter(s => s.presente === true).length;
     
-    const babyPresent = AppState.students.filter(s => s.presente && s.categoria === 'baby').length;
-    const kidsPresent = AppState.students.filter(s => s.presente && s.categoria === 'bambino').length;
+    const babyPresent = AppState.students.filter(s => s.presente === true && s.categoria === 'baby').length;
+    const kidsPresent = AppState.students.filter(s => s.presente === true && s.categoria === 'bambino').length;
     
-    const preCampActive = AppState.students.filter(s => s.preCamp).length;
-    const postCampActive = AppState.students.filter(s => s.postCamp).length;
+    const preCampActive = AppState.students.filter(s => s.presente === true && s.preCamp === true).length;
+    const postCampActive = AppState.students.filter(s => s.presente === true && s.postCamp === true).length;
 
     document.getElementById('stat-total-present').innerText = `${present}/${total}`;
     document.getElementById('stat-baby-present').innerText = babyPresent;
     document.getElementById('stat-kids-present').innerText = kidsPresent;
-    document.getElementById('stat-pre-post').innerText = `${preCampActive}/${postCampActive}`;
+    document.getElementById('stat-pre-present').innerText = preCampActive;
+    document.getElementById('stat-post-present').innerText = postCampActive;
 }
 
 // Aggiorna l'icona e lo stato visualizzato online/offline
@@ -808,4 +833,164 @@ function formatDateToISO(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+// Genera una finestra di stampa pulita per esportare l'elenco selezionato in PDF
+function printList(type) {
+    let listTitle = "";
+    let filteredStudents = [];
+
+    if (type === 'presenti') {
+        listTitle = `Lista Allievi Presenti`;
+        filteredStudents = AppState.students.filter(s => s.presente === true);
+    } else if (type === 'baby') {
+        listTitle = `Lista Baby Presenti`;
+        filteredStudents = AppState.students.filter(s => s.presente === true && s.categoria === 'baby');
+    } else if (type === 'bambini') {
+        listTitle = `Lista Bambini Presenti`;
+        filteredStudents = AppState.students.filter(s => s.presente === true && s.categoria === 'bambino');
+    } else if (type === 'precamp') {
+        listTitle = `Lista Allievi in Pre-Camp`;
+        filteredStudents = AppState.students.filter(s => s.presente === true && s.preCamp === true);
+    } else if (type === 'postcamp') {
+        listTitle = `Lista Allievi in Post-Camp`;
+        filteredStudents = AppState.students.filter(s => s.presente === true && s.postCamp === true);
+    }
+
+    if (filteredStudents.length === 0) {
+        alert("Nessun allievo presente in questo elenco per la giornata selezionata.");
+        return;
+    }
+
+    // Ordina alfabeticamente per cognome
+    filteredStudents.sort((a, b) => a.cognome.localeCompare(b.cognome));
+
+    // Costruisce la finestra di stampa
+    const printWindow = window.open('', '_blank');
+    
+    let rowsHtml = '';
+    filteredStudents.forEach((s, index) => {
+        let services = [];
+        if (s.preCamp) services.push(`Pre-Camp (${s.entrataAnticipata || '08:00'})`);
+        if (s.postCamp) services.push(`Post-Camp (${s.uscitaAnticipata || '13:00'})`);
+        
+        let servicesText = services.join(', ') || 'Nessuno';
+        if (type === 'precamp') {
+            servicesText = `Entrata: ${s.entrataAnticipata || '08:00'}`;
+        } else if (type === 'postcamp') {
+            servicesText = `Uscita: ${s.uscitaAnticipata || '13:00'}`;
+        }
+
+        rowsHtml += `
+            <tr>
+                <td style="text-align: center; width: 40px;">${index + 1}</td>
+                <td><strong>${s.cognome.toUpperCase()}</strong></td>
+                <td>${s.nome}</td>
+                <td style="text-transform: uppercase; font-size: 12px; text-align: center;">${s.categoria}</td>
+                <td>${servicesText}</td>
+            </tr>
+        `;
+    });
+
+    const campLabel = AppState.currentCamp === 'summer' ? 'Summer Camp ☀️' : AppState.currentCamp === 'spring' ? 'Spring Camp 🌸' : 'Winter Camp ❄️';
+    const formattedDate = document.getElementById('date-display').innerText;
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>${listTitle}</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    color: #2D3748;
+                    margin: 0;
+                    padding: 30px;
+                    background-color: white;
+                }
+                .print-header {
+                    text-align: center;
+                    border-bottom: 2px solid #2D3748;
+                    padding-bottom: 15px;
+                    margin-bottom: 25px;
+                }
+                .print-title {
+                    font-size: 24px;
+                    font-weight: 800;
+                    margin: 0 0 5px 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: #1A5276;
+                }
+                .print-meta {
+                    font-size: 14px;
+                    color: #718096;
+                    margin: 0;
+                    font-weight: 500;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }
+                th, td {
+                    border: 1px solid #CBD5E0;
+                    padding: 10px 12px;
+                    text-align: left;
+                    font-size: 13px;
+                }
+                th {
+                    background-color: #EDF2F7;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                    letter-spacing: 0.5px;
+                }
+                tr:nth-child(even) {
+                    background-color: #F7FAFC;
+                }
+                .footer {
+                    margin-top: 35px;
+                    text-align: right;
+                    font-size: 11px;
+                    color: #A0AEC0;
+                    border-top: 1px solid #E2E8F0;
+                    padding-top: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-header">
+                <h1 class="print-title">${listTitle}</h1>
+                <p class="print-meta">${campLabel} &mdash; ${formattedDate}</p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">N°</th>
+                        <th>Cognome</th>
+                        <th>Nome</th>
+                        <th style="text-align: center;">Categoria</th>
+                        <th>Servizi / Orari</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+            <div class="footer">
+                Documento generato automaticamente il ${new Date().toLocaleDateString('it-IT')} alle ${new Date().toLocaleTimeString('it-IT')}
+            </div>
+            <script>
+                window.onload = function() {
+                    window.print();
+                    // Chiude la finestra di stampa dopo la chiusura del pannello di stampa nativo
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }

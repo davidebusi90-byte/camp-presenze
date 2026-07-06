@@ -428,21 +428,51 @@ input, button, select, textarea {
    ========================================================================== */
 .quick-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
 }
 
-.stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-md);
-    padding: 10px 6px;
-    text-align: center;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.quick-stats .stat-card:nth-child(1),
+.quick-stats .stat-card:nth-child(2),
+.quick-stats .stat-card:nth-child(3) {
+    grid-column: span 2;
+}
+
+.quick-stats .stat-card:nth-child(4),
+.quick-stats .stat-card:nth-child(5) {
+    grid-column: span 3;
+}
+
+.stat-card.clickable {
+    cursor: pointer;
+    position: relative;
+    transition: var(--transition);
+}
+
+.stat-card.clickable:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    background: var(--primary-light);
+}
+
+.stat-card.clickable:active {
+    transform: translateY(0);
+}
+
+.icon-print-small {
+    width: 12px;
+    height: 12px;
+    margin-left: 2px;
+    opacity: 0.5;
+    display: inline-block;
+    vertical-align: middle;
+    transition: opacity 0.2s ease;
+}
+
+.stat-card.clickable:hover .icon-print-small {
+    opacity: 1;
+    color: var(--primary);
 }
 
 .stat-value {
@@ -620,10 +650,39 @@ input, button, select, textarea {
 .student-card.present {
     border-color: rgba(16, 185, 129, 0.4);
     box-shadow: 0 4px 16px rgba(16, 185, 129, 0.05);
+    background: #FFFFFF;
 }
 
 .student-card.present::before {
     background: var(--success);
+}
+
+/* Stato Assente: tutta la card grigia e semi-opaca */
+.student-card.absent {
+    border-color: #CBD5E0;
+    background: #F7FAFC;
+    opacity: 0.6;
+}
+
+.student-card.absent::before {
+    background: var(--danger);
+}
+
+/* Stato Neutro: card neutra standard */
+.student-card.neutral {
+    border-color: var(--border-color);
+    background: var(--bg-card);
+}
+
+.student-card.neutral::before {
+    background: var(--text-light);
+}
+
+/* Disabilita i controlli interni per card Neutre e Assenti */
+.student-card.neutral .student-controls,
+.student-card.absent .student-controls {
+    opacity: 0.4;
+    pointer-events: none; /* Disabilita click ed eventi sui controlli */
 }
 
 .student-card-header {
@@ -693,35 +752,48 @@ input, button, select, textarea {
     height: 12px;
 }
 
-/* Toggle Presenza Principale */
-.presence-toggle-btn {
-    border: none;
-    background: #E2E8F0;
-    color: #718096;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 8px 16px;
+/* Gruppo pulsanti presenza (Check / X) */
+.presence-buttons-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.presence-btn {
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-muted);
+    width: 36px;
+    height: 36px;
     border-radius: var(--radius-full);
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
     cursor: pointer;
     transition: var(--transition);
 }
 
-.presence-toggle-btn i {
-    width: 14px;
-    height: 14px;
+.presence-btn i {
+    width: 18px;
+    height: 18px;
 }
 
-.presence-toggle-btn:active {
-    transform: scale(0.95);
-}
-
-.presence-toggle-btn.present {
+.presence-btn.btn-present.active {
     background: var(--success);
     color: white;
+    border-color: transparent;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.presence-btn.btn-absent.active {
+    background: var(--danger);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.presence-btn:active {
+    transform: scale(0.9);
 }
 
 /* Riga controlli Pre/Post e Orari */
@@ -1257,5 +1329,81 @@ input, button, select, textarea {
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
+    }
+}
+
+/* ==========================================================================
+   STILI DI STAMPA PER PDF
+   ========================================================================== */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    /* Layout pulito per stampa elenco */
+    .print-only {
+        display: block !important;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+    
+    .print-container {
+        padding: 20px;
+        font-family: 'Outfit', sans-serif;
+    }
+    
+    .print-header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #2D3748;
+        padding-bottom: 10px;
+    }
+    
+    .print-title {
+        font-size: 26px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #1A5276;
+    }
+    
+    .print-meta {
+        font-size: 14px;
+        color: #718096;
+        margin-top: 5px;
+    }
+    
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .print-table th, .print-table td {
+        border: 1px solid #CBD5E0;
+        padding: 10px 12px;
+        text-align: left;
+        font-size: 14px;
+    }
+    
+    .print-table th {
+        background-color: #EDF2F7;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+    
+    .print-table tr:nth-child(even) {
+        background-color: #F7FAFC;
+    }
+    
+    .print-footer {
+        margin-top: 40px;
+        text-align: right;
+        font-size: 11px;
+        color: #A0AEC0;
     }
 }
