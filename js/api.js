@@ -10,6 +10,11 @@ const STORAGE_KEYS = {
     ACTIVITIES: 'camp_activities_data'   // Fallback offline attività
 };
 
+const DEFAULTS = {
+    SUPABASE_URL: 'https://eegkytdawwajpwysjsli.supabase.co',
+    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZ2t5dGRhd3dhanB3eXNqc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDIyOTAsImV4cCI6MjA5ODkxODI5MH0.lo_eiSTk0KmataFfpuBtW2s2K9nsmOIPo3nZL_qFalQ'
+};
+
 // Dati mock iniziali (fallback offline)
 const MOCK_STUDENTS = [
     { id: '1', nome: 'Sofia', cognome: 'Rossi', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: false },
@@ -46,8 +51,8 @@ const CampAPI = {
     // Configura e ottiene i parametri Supabase
     getSupabaseConfig() {
         return {
-            url: localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '',
-            key: localStorage.getItem(STORAGE_KEYS.SUPABASE_KEY) || ''
+            url: localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || DEFAULTS.SUPABASE_URL,
+            key: localStorage.getItem(STORAGE_KEYS.SUPABASE_KEY) || DEFAULTS.SUPABASE_KEY
         };
     },
 
