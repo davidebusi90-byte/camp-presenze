@@ -1,6 +1,6 @@
 /**
  * server.js - Semplice server HTTP statico per Node.js (senza dipendenze esterne)
- * Permette di testare l'app localmente e da cellulare sulla stessa rete Wi-Fi.
+ * Permette di testare l'app localmente.
  */
 
 const http = require('http');
@@ -68,27 +68,13 @@ const server = http.createServer((req, res) => {
     });
 });
 
-// Avvia il server e stampa gli indirizzi IP locali
-server.listen(PORT, '0.0.0.0', () => {
+// Avvia il server in locale (accessibile solo da questo computer)
+server.listen(PORT, '127.0.0.1', () => {
     console.log('\n======================================================');
     console.log(`Server Presenze Camp avviato con successo!`);
     console.log(`PORTA: ${PORT}`);
     console.log('======================================================');
     console.log(`\nACCESSO LOCALE (da questo computer):`);
     console.log(`  http://localhost:${PORT}`);
-    
-    // Trova l'IP di rete locale per l'accesso da cellulare
-    const { networkInterfaces } = require('os');
-    const nets = networkInterfaces();
-    
-    console.log(`\nACCESSO DA CELLULARE (sotto la stessa rete Wi-Fi):`);
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            // Salta gli indirizzi di loopback e quelli IPv6 non globali
-            if (net.family === 'IPv4' && !net.internal) {
-                console.log(`  http://${net.address}:${PORT}`);
-            }
-        }
-    }
     console.log('\nPremi CTRL+C per arrestare il server.\n');
 });
