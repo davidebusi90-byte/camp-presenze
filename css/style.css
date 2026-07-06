@@ -1,0 +1,1253 @@
+/* ==========================================================================
+   DESIGN SYSTEM & CUSTOM PROPERTIES (THEMING)
+   ========================================================================== */
+
+/* VARIABILI DI DEFAULT (TEMA SUMMER CAMP) */
+.theme-summer {
+    --primary: #E85A1D; /* Arancione caldo */
+    --primary-gradient: linear-gradient(135deg, #F27A18, #E85A1D);
+    --primary-light: #FDF2EB;
+    --primary-light-rgba: rgba(232, 90, 29, 0.08);
+    --bg-gradient: linear-gradient(180deg, #FFF9F5 0%, #FFF2EB 100%);
+    --accent: #E85A1D;
+    --accent-glow: rgba(242, 122, 24, 0.15);
+    --accent-rgb: 232, 90, 29;
+    --glow-color-1: rgba(242, 122, 24, 0.2);
+    --glow-color-2: rgba(255, 184, 0, 0.15);
+    
+    --baby-color: #EC4899; /* Rosa fucsia */
+    --baby-bg: rgba(236, 72, 153, 0.1);
+    --kid-color: #3B82F6; /* Blu elettrico */
+    --kid-bg: rgba(59, 130, 246, 0.1);
+}
+
+/* TEMA SPRING CAMP */
+.theme-spring {
+    --primary: #1B9C55; /* Verde foglia */
+    --primary-gradient: linear-gradient(135deg, #2ECC71, #1B9C55);
+    --primary-light: #EEF8F2;
+    --primary-light-rgba: rgba(27, 156, 85, 0.08);
+    --bg-gradient: linear-gradient(180deg, #F6FCF8 0%, #EEF7F1 100%);
+    --accent: #9B59B6; /* Viola fiore/arcobaleno */
+    --accent-glow: rgba(155, 89, 182, 0.15);
+    --accent-rgb: 27, 156, 85;
+    --glow-color-1: rgba(46, 204, 113, 0.2);
+    --glow-color-2: rgba(155, 89, 182, 0.15);
+    
+    --baby-color: #EC4899;
+    --baby-bg: rgba(236, 72, 153, 0.1);
+    --kid-color: #2563EB;
+    --kid-bg: rgba(37, 99, 235, 0.1);
+}
+
+/* TEMA WINTER CAMP */
+.theme-winter {
+    --primary: #1A5276; /* Blu ghiaccio scuro */
+    --primary-gradient: linear-gradient(135deg, #2980B9, #1A5276);
+    --primary-light: #EBF3F8;
+    --primary-light-rgba: rgba(26, 82, 118, 0.08);
+    --bg-gradient: linear-gradient(180deg, #F3F8FB 0%, #E6EFF5 100%);
+    --accent: #E74C3C; /* Rosso Babbo Natale */
+    --accent-glow: rgba(231, 76, 60, 0.15);
+    --accent-rgb: 26, 82, 118;
+    --glow-color-1: rgba(41, 128, 185, 0.2);
+    --glow-color-2: rgba(231, 76, 60, 0.15);
+    
+    --baby-color: #D946EF;
+    --baby-bg: rgba(217, 70, 239, 0.1);
+    --kid-color: #0284C7;
+    --kid-bg: rgba(2, 132, 199, 0.1);
+}
+
+/* VARIABILI GLOBALI */
+:root {
+    --text-main: #2D3748;
+    --text-muted: #718096;
+    --text-light: #A0AEC0;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-glass-modal: rgba(255, 255, 255, 0.9);
+    --border-color: rgba(226, 232, 240, 0.8);
+    --border-glass: rgba(255, 255, 255, 0.6);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 8px 24px rgba(149, 157, 165, 0.12);
+    --shadow-lg: 0 16px 32px rgba(149, 157, 165, 0.18);
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-full: 9999px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    --success: #10B981;
+    --success-bg: rgba(16, 185, 129, 0.1);
+    --danger: #EF4444;
+    --danger-bg: rgba(239, 68, 68, 0.1);
+}
+
+/* ==========================================================================
+   RESET & FONDAMENTALI
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    transition: background 0.5s ease, color 0.3s ease;
+}
+
+input, button, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* Effetti sfocatura di sfondo ambientali */
+.bg-glow-1, .bg-glow-2 {
+    position: fixed;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.5;
+    transition: background 0.5s ease;
+}
+
+.bg-glow-1 {
+    top: -50px;
+    right: -50px;
+    background: var(--glow-color-1);
+}
+
+.bg-glow-2 {
+    bottom: 50px;
+    left: -50px;
+    background: var(--glow-color-2);
+}
+
+/* ==========================================================================
+   LAYOUT GENERALI
+   ========================================================================== */
+.app-container {
+    max-width: 500px; /* Ottimizzato per la larghezza di un cellulare */
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 84px; /* Spazio per la barra di navigazione inferiore */
+    position: relative;
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 100;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.3s ease;
+}
+
+.header-logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.camp-logo {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    transition: transform 0.3s ease;
+}
+
+.camp-logo:active {
+    transform: scale(0.95);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Badge Sincronizzazione */
+.sync-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    transition: var(--transition);
+}
+
+.sync-badge.online {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.sync-badge.offline {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+/* Pulsanti icone */
+.icon-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    color: var(--text-main);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+    background: var(--border-color);
+}
+
+/* Dropdown per il cambio Camp */
+.dropdown-camp {
+    position: relative;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 50px;
+    background: var(--bg-glass-modal);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    min-width: 170px;
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass);
+    z-index: 200;
+    overflow: hidden;
+    transform-origin: top right;
+    animation: fadeInScale 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.dropdown-item:hover, .dropdown-item:active {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.dropdown-item.active {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+/* Icone stagionali specifiche */
+.icon-summer { color: #F27A18; }
+.icon-spring { color: #2ECC71; }
+.icon-winter { color: #3498db; }
+.dropdown-item.active .icon-summer,
+.dropdown-item.active .icon-spring,
+.dropdown-item.active .icon-winter {
+    color: white;
+}
+
+/* ==========================================================================
+   PANNELLI E NAVIGAZIONE INFERIORE
+   ========================================================================== */
+.app-main {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-panel {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.app-panel.active {
+    display: flex;
+}
+
+/* Barra di navigazione inferiore */
+.app-nav {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 468px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    transition: border-color 0.3s ease;
+}
+
+.nav-item {
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 11px;
+    cursor: pointer;
+    transition: var(--transition);
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+}
+
+.nav-item i {
+    width: 22px;
+    height: 22px;
+    transition: transform 0.2s ease;
+}
+
+.nav-item.active {
+    color: var(--primary);
+}
+
+.nav-item.active i {
+    transform: translateY(-2px) scale(1.1);
+    stroke-width: 2.5px;
+}
+
+/* ==========================================================================
+   NAVIGAZIONE DATA
+   ========================================================================== */
+.date-navigator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+.date-nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.date-nav-btn:active {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.date-display-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.date-display-container:active {
+    background: var(--primary-light);
+}
+
+.hidden-date-picker {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+/* ==========================================================================
+   PANNELLO RIEPILOGO STATISTICHE
+   ========================================================================== */
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 10px 6px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   RICERCA E FILTRI
+   ========================================================================== */
+.search-filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    box-shadow: var(--shadow-sm);
+    gap: 10px;
+    position: relative;
+}
+
+.search-box input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.search-box input::placeholder {
+    color: var(--text-light);
+}
+
+.search-box i {
+    color: var(--text-muted);
+    width: 18px;
+    height: 18px;
+}
+
+#clear-search-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+#clear-search-btn.hidden {
+    display: none;
+}
+
+/* Pillole Filtri */
+.filter-pills-container {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none; /* Rimuove scrollbar Firefox */
+}
+
+.filter-pills-container::-webkit-scrollbar {
+    display: none; /* Rimuove scrollbar Safari/Chrome */
+}
+
+.filter-pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    color: var(--text-muted);
+    padding: 8px 14px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.filter-pill:active {
+    transform: scale(0.95);
+}
+
+.filter-pill.active {
+    background: var(--primary-gradient);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
+}
+
+/* ==========================================================================
+   CARDS ALLIEVI
+   ========================================================================== */
+.students-list-wrapper {
+    flex: 1;
+}
+
+.students-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Stato vuoto o caricamento */
+.empty-state, .loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.empty-state i {
+    width: 48px;
+    height: 48px;
+    color: var(--text-light);
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Singola scheda allievo */
+.student-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.student-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--text-light);
+    transition: var(--transition);
+}
+
+.student-card.present {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.05);
+}
+
+.student-card.present::before {
+    background: var(--success);
+}
+
+.student-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.student-info-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.student-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.badges-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Badge categoria Baby o Bambino */
+.badge-category {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-category.baby {
+    background: var(--baby-bg);
+    color: var(--baby-color);
+}
+
+.badge-category.bambino {
+    background: var(--kid-bg);
+    color: var(--kid-color);
+}
+
+/* Badge di orario speciale (entrata/uscita anticipata) */
+.badge-special-time {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-special-time i {
+    width: 12px;
+    height: 12px;
+}
+
+/* Toggle Presenza Principale */
+.presence-toggle-btn {
+    border: none;
+    background: #E2E8F0;
+    color: #718096;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.presence-toggle-btn i {
+    width: 14px;
+    height: 14px;
+}
+
+.presence-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.presence-toggle-btn.present {
+    background: var(--success);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+/* Riga controlli Pre/Post e Orari */
+.student-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 12px;
+}
+
+/* Interruttore pre/post camp */
+.camp-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #F7FAFC;
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.switch-control {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+}
+
+.switch-control input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #CBD5E0;
+    transition: .3s;
+    border-radius: 20px;
+}
+
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px; width: 14px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.switch-control input:checked + .switch-slider {
+    background-color: var(--primary);
+}
+
+.switch-control input:checked + .switch-slider:before {
+    transform: translateX(14px);
+}
+
+/* Pulsante per impostare orari straordinari */
+.btn-time-config {
+    grid-column: span 2;
+    background: #F7FAFC;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-time-config i {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-time-config:active {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.btn-time-config.active {
+    background: var(--primary-light-rgba);
+    border-color: rgba(var(--accent-rgb), 0.3);
+    color: var(--primary);
+}
+
+/* ==========================================================================
+   PANNELLO CALENDARIO ATTIVITÀ
+   ========================================================================== */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.panel-header h2 {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+/* Giorni della settimana */
+.days-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.day-pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    color: var(--text-muted);
+    padding: 10px 0;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.day-pill:active {
+    transform: scale(0.95);
+}
+
+.day-pill.active {
+    background: var(--primary-gradient);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
+}
+
+.activities-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.activity-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition);
+}
+
+.activity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.activity-time-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+}
+
+.activity-time-badge i {
+    width: 12px;
+    height: 12px;
+}
+
+.activity-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.btn-delete-activity {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.btn-delete-activity:active {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+/* ==========================================================================
+   PANNELLO IMPOSTAZIONI
+   ========================================================================== */
+.settings-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.settings-stats-offline {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.developer-card {
+    border: 1px dashed var(--primary);
+    background: rgba(var(--accent-rgb), 0.02);
+}
+
+.settings-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+/* ==========================================================================
+   MODALI (OVERLAYS)
+   ========================================================================== */
+.modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(14, 20, 31, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    transition: opacity 0.3s ease;
+}
+
+.modal-backdrop.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: var(--bg-glass-modal);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 400px;
+    overflow: hidden;
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.close-modal-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-student-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary);
+    margin-top: -6px;
+}
+
+.modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.01);
+}
+
+/* ==========================================================================
+   COMPONENTI E UTILITY COMUNI
+   ========================================================================== */
+
+/* Form e Inserimenti */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.form-group input[type="url"],
+.form-group input[type="text"],
+.form-group select {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    outline: none;
+    font-weight: 500;
+    color: var(--text-main);
+    width: 100%;
+    transition: var(--transition);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light-rgba);
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.col {
+    flex: 1;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon input[type="time"] {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px 10px 38px;
+    outline: none;
+    font-weight: 600;
+    color: var(--text-main);
+    width: 100%;
+    transition: var(--transition);
+}
+
+.input-with-icon input[type="time"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light-rgba);
+}
+
+.icon-input {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+}
+
+.input-help {
+    font-size: 10px;
+    color: var(--text-light);
+}
+
+/* Pulsanti */
+.btn {
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
+}
+
+.btn-secondary {
+    background: #E2E8F0;
+    color: var(--text-main);
+}
+
+.btn-secondary-outline {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.btn-danger-outline {
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+}
+
+.btn-danger-outline:active {
+    background: var(--danger-bg);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 11px;
+    border-radius: var(--radius-sm);
+}
+
+.btn-link {
+    background: transparent;
+    color: var(--primary);
+    padding: 0;
+    justify-content: flex-start;
+    text-decoration: underline;
+}
+
+/* Messaggi di stato */
+.test-result-message {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.test-result-message.success {
+    color: var(--success);
+}
+
+.test-result-message.error {
+    color: var(--danger);
+}
+
+/* ==========================================================================
+   ANIMAZIONI
+   ========================================================================== */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ritmo Danza - Presenze Camp</title>
+    <!-- Google Fonts - Outfit per una tipografia moderna e premium -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN per icone minimali e pulite -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-summer"> <!-- Tema di default: Summer Camp -->
+
+    <!-- BACKGROUND EFFECTS -->
+    <div class="bg-glow-1"></div>
+    <div class="bg-glow-2"></div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="app-container">
+        
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-logo-container">
+                <img id="camp-logo" src="assets/summer_camp_logo.jpg" alt="Ritmo Danza Camp Logo" class="camp-logo">
+            </div>
+            
+            <div class="header-actions">
+                <!-- Indicatore Stato Sincronizzazione API -->
+                <div id="sync-status" class="sync-badge offline" title="Stato Sincronizzazione">
+                    <i data-lucide="cloud-off"></i>
+                    <span>Offline</span>
+                </div>
+                
+                <!-- Menu a 3 punti per il cambio Camp (Summer, Spring, Winter) -->
+                <div class="dropdown-camp">
+                    <button id="camp-menu-btn" class="icon-btn" aria-label="Cambia Camp">
+                        <i data-lucide="more-vertical"></i>
+                    </button>
+                    <div id="camp-dropdown-content" class="dropdown-content">
+                        <button class="dropdown-item active" data-camp="summer">
+                            <i data-lucide="sun" class="icon-summer"></i> Summer Camp
+                        </button>
+                        <button class="dropdown-item" data-camp="spring">
+                            <i data-lucide="flower" class="icon-spring"></i> Spring Camp
+                        </button>
+                        <button class="dropdown-item" data-camp="winter">
+                            <i data-lucide="snowflake" class="icon-winter"></i> Winter Camp
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT PANELS -->
+        <main class="app-main">
+            
+            <!-- PANEL: PRESENZE (DEFAULT) -->
+            <section id="panel-presenze" class="app-panel active">
+                
+                <!-- DATE NAVIGATOR -->
+                <div class="date-navigator">
+                    <button id="btn-prev-date" class="date-nav-btn">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <div class="date-display-container">
+                        <i data-lucide="calendar"></i>
+                        <span id="date-display">Lunedì, 6 Luglio 2026</span>
+                        <input type="date" id="date-picker" class="hidden-date-picker">
+                    </div>
+                    <button id="btn-next-date" class="date-nav-btn">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- QUICK STATS SUMMARY -->
+                <div class="quick-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-total-present">0/0</span>
+                        <span class="stat-label">Presenti</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-baby-present">0</span>
+                        <span class="stat-label">Baby</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-kids-present">0</span>
+                        <span class="stat-label">Bambini</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-pre-post">0/0</span>
+                        <span class="stat-label">Pre / Post</span>
+                    </div>
+                </div>
+
+                <!-- SEARCH & FILTER BAR -->
+                <div class="search-filter-section">
+                    <div class="search-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="search-input" placeholder="Cerca allievo per nome...">
+                        <button id="clear-search-btn" class="hidden"><i data-lucide="x"></i></button>
+                    </div>
+                    
+                    <div class="filter-pills-container">
+                        <button class="filter-pill active" data-filter="all">Tutti</button>
+                        <button class="filter-pill" data-filter="baby">Baby</button>
+                        <button class="filter-pill" data-filter="bambino">Bambini</button>
+                        <button class="filter-pill" data-filter="present">Presenti</button>
+                        <button class="filter-pill" data-filter="absent">Assenti</button>
+                    </div>
+                </div>
+
+                <!-- ALLIEVI LIST -->
+                <div class="students-list-wrapper">
+                    <div id="students-list" class="students-list">
+                        <!-- Caricato dinamicamente via JS -->
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Caricamento allievi...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL: CALENDARIO -->
+            <section id="panel-calendario" class="app-panel">
+                <div class="panel-header">
+                    <h2>Calendario Attività</h2>
+                    <button id="btn-add-activity" class="btn btn-primary btn-sm">
+                        <i data-lucide="plus"></i> Aggiungi
+                    </button>
+                </div>
+
+                <!-- DAYS OF THE WEEK FILTER -->
+                <div class="days-nav">
+                    <button class="day-pill active" data-day="1">Lun</button>
+                    <button class="day-pill" data-day="2">Mar</button>
+                    <button class="day-pill" data-day="3">Mer</button>
+                    <button class="day-pill" data-day="4">Gio</button>
+                    <button class="day-pill" data-day="5">Ven</button>
+                </div>
+
+                <!-- ACTIVITIES LIST -->
+                <div class="activities-wrapper">
+                    <div id="activities-list" class="activities-list">
+                        <!-- Caricato dinamicamente via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL: IMPOSTAZIONI -->
+            <section id="panel-impostazioni" class="app-panel">
+                <div class="panel-header">
+                    <h2>Impostazioni e Sincronizzazione</h2>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Configurazione API Backend</h3>
+                    <p class="settings-desc">Inserisci l'URL dell'API per sincronizzare le presenze con il database centrale.</p>
+                    
+                    <div class="form-group">
+                        <label for="settings-api-url">URL Base API</label>
+                        <input type="url" id="settings-api-url" placeholder="https://api.iltuodominio.com/camp" value="">
+                    </div>
+
+                    <div class="settings-actions">
+                        <button id="btn-test-api" class="btn btn-secondary">
+                            <i data-lucide="wifi"></i> Test Connessione
+                        </button>
+                        <button id="btn-save-settings" class="btn btn-primary">
+                            <i data-lucide="save"></i> Salva
+                        </button>
+                    </div>
+                    <div id="api-test-result" class="test-result-message"></div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Database Locale</h3>
+                    <p class="settings-desc">Gestisci i dati salvati offline sul dispositivo corrente.</p>
+                    <div class="settings-stats-offline">
+                        <div>Stato: <strong id="local-db-status">In uso (Mock data)</strong></div>
+                        <div>Allievi registrati localmente: <strong id="local-db-count">0</strong></div>
+                    </div>
+                    <div class="settings-actions">
+                        <button id="btn-reset-mock" class="btn btn-danger-outline">
+                            <i data-lucide="refresh-cw"></i> Ripristina Dati Esempio
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-card developer-card">
+                    <h3><i data-lucide="code"></i> Area Sviluppatore API</h3>
+                    <p class="settings-desc">Sei il programmatore backend? Trovi la specifica dei contratti JSON e degli endpoint nella documentazione allegata.</p>
+                    <a href="api_spec.md" target="_blank" class="btn btn-link">
+                        <i data-lucide="file-text"></i> Apri Specifica API (api_spec.md)
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <!-- BOTTOM NAVIGATION BAR (Ottimizzata per mobile) -->
+        <nav class="app-nav">
+            <button class="nav-item active" data-target="panel-presenze">
+                <i data-lucide="users"></i>
+                <span>Presenze</span>
+            </button>
+            <button class="nav-item" data-target="panel-calendario">
+                <i data-lucide="calendar"></i>
+                <span>Attività</span>
+            </button>
+            <button class="nav-item" data-target="panel-impostazioni">
+                <i data-lucide="settings"></i>
+                <span>Impostazioni</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODAL: DETTAGLI INGRESSO / USCITA ANTICIPATA -->
+    <div id="time-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Gestisci Orari Allievo</h3>
+                <button class="close-modal-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-student-name" class="modal-student-name">Allievo Esempio</p>
+                <input type="hidden" id="modal-student-id">
+                
+                <div class="form-group">
+                    <label for="input-early-entry">Entrata in Anticipo (Orario)</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="clock-in" class="icon-input"></i>
+                        <input type="time" id="input-early-entry">
+                    </div>
+                    <span class="input-help">Lasciare vuoto se entra ad orario standard.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="input-early-exit">Uscita in Anticipo (Orario)</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="clock-out" class="icon-input"></i>
+                        <input type="time" id="input-early-exit">
+                    </div>
+                    <span class="input-help">Lasciare vuoto se esce ad orario standard.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-clear-times" class="btn btn-secondary-outline">Cancella Orari</button>
+                <button id="btn-save-times" class="btn btn-primary">Salva Orari</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AGGIUNGI ATTIVITÀ CALENDARIO -->
+    <div id="activity-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Aggiungi Attività</h3>
+                <button class="close-modal-btn"><i data-lucide="x"></i></button>
+            </div>
+            <form id="activity-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="activity-name">Nome Attività</label>
+                        <input type="text" id="activity-name" required placeholder="Es. Hip Hop, Laboratorio Creativo, Piscina">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label for="activity-day">Giorno della Settimana</label>
+                            <select id="activity-day" required>
+                                <option value="1">Lunedì</option>
+                                <option value="2">Martedì</option>
+                                <option value="3">Mercoledì</option>
+                                <option value="4">Giovedì</option>
+                                <option value="5">Venerdì</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label for="activity-time-start">Ora Inizio</label>
+                            <input type="time" id="activity-time-start" required>
+                        </div>
+                        <div class="form-group col">
+                            <label for="activity-time-end">Ora Fine</label>
+                            <input type="time" id="activity-time-end" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="activity-target">Destinatari</label>
+                        <select id="activity-target" required>
+                            <option value="tutti">Tutti (Baby e Bambini)</option>
+                            <option value="baby">Solo Baby</option>
+                            <option value="bambino">Solo Bambini</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-outline close-modal-btn">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Aggiungi Attività</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CARICAMENTO DEGLI SCRIPT -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
