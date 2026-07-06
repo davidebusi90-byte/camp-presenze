@@ -157,12 +157,17 @@
                 </div>
 
                 <div class="settings-card">
-                    <h3>Configurazione API Backend</h3>
-                    <p class="settings-desc">Inserisci l'URL dell'API per sincronizzare le presenze con il database centrale.</p>
+                    <h3><i data-lucide="database"></i> Configurazione Supabase</h3>
+                    <p class="settings-desc">Inserisci i parametri di connessione del tuo progetto Supabase per sincronizzare le presenze e le attività in cloud.</p>
                     
                     <div class="form-group">
-                        <label for="settings-api-url">URL Base API</label>
-                        <input type="url" id="settings-api-url" placeholder="https://api.iltuodominio.com/camp" value="">
+                        <label for="settings-supabase-url">Supabase Project URL</label>
+                        <input type="url" id="settings-supabase-url" placeholder="https://xyz.supabase.co" value="">
+                    </div>
+
+                    <div class="form-group" style="margin-top: 8px;">
+                        <label for="settings-supabase-key">Supabase Anon Key</label>
+                        <input type="text" id="settings-supabase-key" placeholder="Incolla qui la tua anon public key..." value="">
                     </div>
 
                     <div class="settings-actions">
@@ -191,10 +196,10 @@
                 </div>
 
                 <div class="settings-card developer-card">
-                    <h3><i data-lucide="code"></i> Area Sviluppatore API</h3>
-                    <p class="settings-desc">Sei il programmatore backend? Trovi la specifica dei contratti JSON e degli endpoint nella documentazione allegata.</p>
-                    <a href="api_spec.md" target="_blank" class="btn btn-link">
-                        <i data-lucide="file-text"></i> Apri Specifica API (api_spec.md)
+                    <h3><i data-lucide="code"></i> Setup Database Supabase</h3>
+                    <p class="settings-desc">Crea lo schema del database in due minuti su Supabase copiando lo script SQL che trovi qui sotto.</p>
+                    <a href="supabase_schema.sql" target="_blank" class="btn btn-link">
+                        <i data-lucide="file-text"></i> Apri Schema SQL (supabase_schema.sql)
                     </a>
                 </div>
             </section>

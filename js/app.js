@@ -35,11 +35,20 @@ async function initApp() {
         AppState.currentCamp = savedCamp;
     }
     
-    // Imposta il valore dell'API Url nelle impostazioni
-    const apiUrlInput = document.getElementById('settings-api-url');
-    if (apiUrlInput) {
-        apiUrlInput.value = window.CampAPI.getApiUrl();
-    }
+    // Imposta il valore delle chiavi Supabase nelle impostazioni
+    const config = window.CampAPI.getSupabaseConfig();
+    const supabaseUrlInput = document.getElementById('settings-supabase-url');
+    const supabaseKeyInput = document.getElementById('settings-supabase-key');
+    if (supabaseUrlInput) supabaseUrlInput.value = config.url;
+    if (supabaseKeyInput) supabaseKeyInput.value = config.key;
+
+    // Aggiornamento automatico ogni 30 secondi se in modalità online (Supabase collegato)
+    setInterval(async () => {
+        if (AppState.currentTab === 'panel-presenze' && window.CampAPI.isOnlineMode()) {
+            console.log('Auto-refresh delle presenze da Supabase...');
+            await loadStudentsData();
+        }
+    }, 30000);
 
     // Applica il tema iniziale
     applyCampTheme(AppState.currentCamp);
@@ -221,10 +230,11 @@ function registerEventListeners() {
         }
     });
 
-    // 6. Impostazioni API e Reset
+    // 6. Impostazioni Supabase e Reset
     document.getElementById('btn-save-settings').addEventListener('click', () => {
-        const urlValue = document.getElementById('settings-api-url').value.trim();
-        window.CampAPI.setApiUrl(urlValue);
+        const urlValue = document.getElementById('settings-supabase-url').value.trim();
+        const keyValue = document.getElementById('settings-supabase-key').value.trim();
+        window.CampAPI.setSupabaseConfig(urlValue, keyValue);
         
         const resultMsg = document.getElementById('api-test-result');
         resultMsg.className = 'test-result-message success';
@@ -239,12 +249,13 @@ function registerEventListeners() {
     });
 
     document.getElementById('btn-test-api').addEventListener('click', async () => {
-        const urlValue = document.getElementById('settings-api-url').value.trim();
+        const urlValue = document.getElementById('settings-supabase-url').value.trim();
+        const keyValue = document.getElementById('settings-supabase-key').value.trim();
         const resultMsg = document.getElementById('api-test-result');
         resultMsg.className = 'test-result-message';
         resultMsg.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; display:inline-block; margin-right:8px;"></div> Verifica in corso...';
         
-        const test = await window.CampAPI.testConnection(urlValue);
+        const test = await window.CampAPI.testConnection(urlValue, keyValue);
         if (test.success) {
             resultMsg.className = 'test-result-message success';
             resultMsg.innerText = test.message;
@@ -757,7 +768,7 @@ function updateSettingsStats() {
     const statusText = document.getElementById('local-db-status');
     
     if (isOnline) {
-        statusText.innerHTML = `<span style="color:var(--success)">Sincronizzato con API centrali</span>`;
+        statusText.innerHTML = `<span style="color:var(--success)">Connesso a Supabase Cloud</span>`;
     } else {
         statusText.innerHTML = `In uso (Locale / Offline)`;
     }

@@ -1,15 +1,16 @@
 /**
- * API.js - Modulo per l'integrazione con le API backend
- * Include fallback automatico su localStorage con dati mock per test offline.
+ * API.js - Integrazione diretta con Supabase REST API (PostgREST)
+ * Gestisce la memorizzazione di URL e Anon Key e implementa il fallback su localStorage.
  */
 
 const STORAGE_KEYS = {
-    API_URL: 'camp_api_url',
-    STUDENTS: 'camp_students_data', // Struttura: { [camp]: { [date]: [students] } }
-    ACTIVITIES: 'camp_activities_data' // Struttura: { [camp]: [activities] }
+    SUPABASE_URL: 'camp_supabase_url',
+    SUPABASE_KEY: 'camp_supabase_key',
+    STUDENTS: 'camp_students_data',     // Fallback offline presenze
+    ACTIVITIES: 'camp_activities_data'   // Fallback offline attività
 };
 
-// Dati mock iniziali se non ci sono dati in localStorage
+// Dati mock iniziali (fallback offline)
 const MOCK_STUDENTS = [
     { id: '1', nome: 'Sofia', cognome: 'Rossi', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: false },
     { id: '2', nome: 'Leonardo', cognome: 'Bianchi', categoria: 'bambino', preCamp: true, postCamp: false, entrataAnticipata: '08:00', uscitaAnticipata: '', presente: true },
@@ -42,73 +43,83 @@ const MOCK_ACTIVITIES = {
 };
 
 const CampAPI = {
-    // Configura e ottiene l'URL Base dell'API
-    getApiUrl() {
-        return localStorage.getItem(STORAGE_KEYS.API_URL) || '';
+    // Configura e ottiene i parametri Supabase
+    getSupabaseConfig() {
+        return {
+            url: localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '',
+            key: localStorage.getItem(STORAGE_KEYS.SUPABASE_KEY) || ''
+        };
     },
 
-    setApiUrl(url) {
-        if (url) {
-            localStorage.setItem(STORAGE_KEYS.API_URL, url);
+    setSupabaseConfig(url, key) {
+        if (url && key) {
+            localStorage.setItem(STORAGE_KEYS.SUPABASE_URL, url.trim().replace(/\/$/, "")); // Rimuove eventuale slash finale
+            localStorage.setItem(STORAGE_KEYS.SUPABASE_KEY, key.trim());
         } else {
-            localStorage.removeItem(STORAGE_KEYS.API_URL);
+            localStorage.removeItem(STORAGE_KEYS.SUPABASE_URL);
+            localStorage.removeItem(STORAGE_KEYS.SUPABASE_KEY);
         }
     },
 
-    // Verifica se l'app è collegata ad un'API reale
+    // Rileva se l'app è collegata a Supabase
     isOnlineMode() {
-        return this.getApiUrl().trim() !== '';
+        const config = this.getSupabaseConfig();
+        return config.url !== '' && config.key !== '';
     },
 
-    // Testa la connessione all'URL API fornito
-    async testConnection(url) {
-        if (!url) return { success: false, message: 'URL non inserito' };
+    // Genera gli header HTTP per Supabase
+    getHeaders(key) {
+        const activeKey = key || this.getSupabaseConfig().key;
+        return {
+            'apikey': activeKey,
+            'Authorization': `Bearer ${activeKey}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+    },
+
+    // Testa la connessione a Supabase facendo una query di test sulla tabella allievi
+    async testConnection(url, key) {
+        if (!url || !key) return { success: false, message: 'URL o Key mancanti.' };
         
         try {
-            // Effettua una chiamata di test (health check o get standard) con timeout breve
+            const cleanUrl = url.trim().replace(/\/$/, "");
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), 4000);
             
-            const response = await fetch(`${url}/health`, { 
+            const response = await fetch(`${cleanUrl}/rest/v1/allievi?limit=1`, {
                 method: 'GET',
                 signal: controller.signal,
-                headers: { 'Accept': 'application/json' }
-            }).catch(async (err) => {
-                // Se /health fallisce, proviamo una chiamata GET allievi semplice
-                return await fetch(`${url}/students?camp=summer&date=2026-07-06`, {
-                    method: 'GET',
-                    signal: controller.signal
-                });
+                headers: this.getHeaders(key)
             });
             
             clearTimeout(id);
             if (response.ok) {
                 return { success: true, message: 'Connessione stabilita con successo!' };
             } else {
-                return { success: false, message: `Errore Server: Risposta con stato ${response.status}` };
+                const errText = await response.text();
+                return { success: false, message: `Errore Supabase (${response.status}): ${errText || 'Verifica lo schema del DB.'}` };
             }
         } catch (e) {
-            console.error('API Test Error:', e);
+            console.error('Supabase Connection Test Error:', e);
             return { 
                 success: false, 
-                message: 'Impossibile connettersi al server. Verifica CORS o URL. (Dettagli in console)' 
+                message: 'Impossibile connettersi a Supabase. Verifica l\'URL o i permessi CORS.' 
             };
         }
     },
 
-    // Inizializza i dati mock in localStorage se necessario
+    // Inizializza localStorage
     initLocalStore() {
         if (!localStorage.getItem(STORAGE_KEYS.STUDENTS)) {
-            // Struttura iniziale vuota per le presenze
             localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify({}));
         }
         if (!localStorage.getItem(STORAGE_KEYS.ACTIVITIES)) {
-            // Inseriamo attività mock iniziali
             localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(MOCK_ACTIVITIES));
         }
     },
 
-    // Forza il ripristino dei dati finti per test
+    // Ripristina mock data offline
     resetMockData() {
         localStorage.removeItem(STORAGE_KEYS.STUDENTS);
         localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify({}));
@@ -116,40 +127,66 @@ const CampAPI = {
         return MOCK_STUDENTS.length;
     },
 
-    // Recupera l'elenco degli allievi con il loro stato per una determinata data e tipo di camp
+    // Recupera la lista degli allievi e ne unisce lo stato presenze della data selezionata
     async fetchStudents(camp, dateStr) {
         this.initLocalStore();
         
         if (this.isOnlineMode()) {
-            const baseUrl = this.getApiUrl();
+            const config = this.getSupabaseConfig();
             try {
-                const response = await fetch(`${baseUrl}/students?camp=${camp}&date=${dateStr}`);
-                if (response.ok) {
-                    return await response.json();
-                }
-                throw new Error('API centrali non raggiungibili');
+                // 1. Scarica tutti gli allievi di questo Camp
+                const urlAllievi = `${config.url}/rest/v1/allievi?camp=eq.${camp}&select=*`;
+                const resAllievi = await fetch(urlAllievi, {
+                    method: 'GET',
+                    headers: this.getHeaders()
+                });
+                
+                if (!resAllievi.ok) throw new Error('Impossibile scaricare allievi');
+                const allievi = await resAllievi.json();
+
+                // 2. Scarica i record di presenza per questo camp e data
+                const urlPresenze = `${config.url}/rest/v1/presenze?camp=eq.${camp}&data=eq.${dateStr}&select=*`;
+                const resPresenze = await fetch(urlPresenze, {
+                    method: 'GET',
+                    headers: this.getHeaders()
+                });
+                
+                if (!resPresenze.ok) throw new Error('Impossibile scaricare presenze');
+                const presenze = await resPresenze.json();
+
+                // 3. Fai il Merge dei dati in memoria
+                return allievi.map(allievo => {
+                    const recordPresenza = presenze.find(p => p.allievo_id === allievo.id);
+                    return {
+                        id: allievo.id,
+                        nome: allievo.nome,
+                        cognome: allievo.cognome,
+                        categoria: allievo.categoria,
+                        // Se c'è un record di presenza, usa i suoi valori, altrimenti imposta i default
+                        presente: recordPresenza ? recordPresenza.presente : false,
+                        preCamp: recordPresenza ? recordPresenza.pre_camp : false,
+                        postCamp: recordPresenza ? recordPresenza.post_camp : false,
+                        entrataAnticipata: recordPresenza ? recordPresenza.entrata_anticipata : '',
+                        uscitaAnticipata: recordPresenza ? recordPresenza.uscita_anticipata : ''
+                    };
+                });
             } catch (err) {
-                console.warn('Errore fetch API centrale, uso local fallback:', err);
+                console.warn('Errore Supabase Cloud, uso local fallback:', err);
             }
         }
 
         // --- FALLBACK OFFLINE / LOCALSTORAGE ---
         const localData = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS));
-        
-        // Verifica se abbiamo già presenze salvate per questo camp in questa data
         if (localData[camp] && localData[camp][dateStr]) {
             return localData[camp][dateStr];
         } else {
-            // Se non ci sono record per questo giorno, creiamo una nuova giornata 
-            // partendo dall'anagrafica allievi fissa (tutti assenti di default e orari vuoti)
             const freshDayData = MOCK_STUDENTS.map(s => ({
                 ...s,
-                presente: false, // Inizia la giornata come assente
-                entrataAnticipata: s.preCamp ? '08:00' : '', // se preCamp, suggerisci orario
+                presente: false,
+                entrataAnticipata: s.preCamp ? '08:00' : '',
                 uscitaAnticipata: ''
             }));
             
-            // Salviamo questa giornata appena creata
             if (!localData[camp]) localData[camp] = {};
             localData[camp][dateStr] = freshDayData;
             localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(localData));
@@ -158,28 +195,39 @@ const CampAPI = {
         }
     },
 
-    // Salva l'appello o lo stato del singolo allievo per una data e camp specifico
+    // Salva o aggiorna (UPSERT) la presenza di un allievo
     async saveStudentData(camp, dateStr, studentData) {
         this.initLocalStore();
 
         if (this.isOnlineMode()) {
-            const baseUrl = this.getApiUrl();
+            const config = this.getSupabaseConfig();
             try {
-                const response = await fetch(`${baseUrl}/attendance`, {
+                // PostgREST supporta l'UPSERT nativo tramite POST + l'header "Prefer: resolution=merge-duplicates"
+                const url = `${config.url}/rest/v1/presenze`;
+                const headers = this.getHeaders();
+                headers['Prefer'] = 'resolution=merge-duplicates'; // Forza l'inserimento/aggiornamento su vincolo unico (allievo_id, data)
+
+                const payload = {
+                    allievo_id: studentData.id,
+                    data: dateStr,
+                    camp: camp,
+                    presente: studentData.presente,
+                    pre_camp: studentData.preCamp,
+                    post_camp: studentData.postCamp,
+                    entrata_anticipata: studentData.entrataAnticipata || '',
+                    uscita_anticipata: studentData.uscitaAnticipata || ''
+                };
+
+                const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        camp,
-                        date: dateStr,
-                        student: studentData
-                    })
+                    headers: headers,
+                    body: JSON.stringify(payload)
                 });
-                if (response.ok) {
-                    return true;
-                }
-                throw new Error('Salvataggio API fallito');
+
+                if (response.ok) return true;
+                throw new Error('Salvataggio Supabase fallito: ' + await response.text());
             } catch (err) {
-                console.warn('Errore salvataggio API centrale, salvo localmente:', err);
+                console.warn('Errore salvataggio Supabase, salvo localmente:', err);
             }
         }
 
@@ -188,7 +236,6 @@ const CampAPI = {
         if (!localData[camp]) localData[camp] = {};
         if (!localData[camp][dateStr]) localData[camp][dateStr] = [];
 
-        // Aggiorna l'allievo specifico nella lista locale
         const index = localData[camp][dateStr].findIndex(s => s.id === studentData.id);
         if (index !== -1) {
             localData[camp][dateStr][index] = studentData;
@@ -200,19 +247,23 @@ const CampAPI = {
         return true;
     },
 
-    // Ottiene il calendario delle attività per il camp corrente
+    // Ottiene le attività dal calendario Supabase
     async fetchActivities(camp) {
         this.initLocalStore();
 
         if (this.isOnlineMode()) {
-            const baseUrl = this.getApiUrl();
+            const config = this.getSupabaseConfig();
             try {
-                const response = await fetch(`${baseUrl}/activities?camp=${camp}`);
+                const url = `${config.url}/rest/v1/attivita?camp=eq.${camp}&select=*`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: this.getHeaders()
+                });
                 if (response.ok) {
                     return await response.json();
                 }
             } catch (err) {
-                console.warn('Errore fetch attività da API:', err);
+                console.warn('Errore fetch attività da Supabase:', err);
             }
         }
 
@@ -221,23 +272,38 @@ const CampAPI = {
         return activities[camp] || [];
     },
 
-    // Aggiunge un'attività al calendario
+    // Aggiunge un'attività nel calendario Supabase
     async saveActivity(camp, newActivity) {
         this.initLocalStore();
 
         if (this.isOnlineMode()) {
-            const baseUrl = this.getApiUrl();
+            const config = this.getSupabaseConfig();
             try {
-                const response = await fetch(`${baseUrl}/activities`, {
+                const url = `${config.url}/rest/v1/attivita`;
+                const headers = this.getHeaders();
+                headers['Prefer'] = 'return=representation'; // Forza PostgREST a restituire la riga inserita (con l'ID autogenerato)
+
+                const payload = {
+                    camp: camp,
+                    nome: newActivity.nome,
+                    giorno: newActivity.giorno,
+                    inizio: newActivity.inizio,
+                    fine: newActivity.fine,
+                    target: newActivity.target
+                };
+
+                const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ camp, activity: newActivity })
+                    headers: headers,
+                    body: JSON.stringify(payload)
                 });
+
                 if (response.ok) {
-                    return await response.json();
+                    const inserted = await response.json();
+                    return inserted[0] || newActivity;
                 }
             } catch (err) {
-                console.warn('Errore invio attività ad API:', err);
+                console.warn('Errore invio attività a Supabase:', err);
             }
         }
 
@@ -245,7 +311,6 @@ const CampAPI = {
         const activities = JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVITIES)) || {};
         if (!activities[camp]) activities[camp] = [];
         
-        // Genera ID
         newActivity.id = 'act-' + Date.now();
         activities[camp].push(newActivity);
         
@@ -253,21 +318,21 @@ const CampAPI = {
         return newActivity;
     },
 
-    // Cancella un'attività
+    // Rimuove un'attività da Supabase
     async deleteActivity(camp, activityId) {
         this.initLocalStore();
 
         if (this.isOnlineMode()) {
-            const baseUrl = this.getApiUrl();
+            const config = this.getSupabaseConfig();
             try {
-                const response = await fetch(`${baseUrl}/activities/${activityId}?camp=${camp}`, {
-                    method: 'DELETE'
+                const url = `${config.url}/rest/v1/attivita?id=eq.${activityId}`;
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: this.getHeaders()
                 });
-                if (response.ok) {
-                    return true;
-                }
+                if (response.ok) return true;
             } catch (err) {
-                console.warn('Errore cancellazione attività da API:', err);
+                console.warn('Errore cancellazione attività da Supabase:', err);
             }
         }
 
@@ -281,5 +346,4 @@ const CampAPI = {
     }
 };
 
-// Rendiamo disponibile l'oggetto a livello globale
 window.CampAPI = CampAPI;
