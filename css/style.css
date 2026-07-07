@@ -761,6 +761,14 @@ input, button, select, textarea {
     height: 12px;
 }
 
+.student-times-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+    align-items: flex-start;
+}
+
 /* Gruppo pulsanti presenza (Check / X) */
 .presence-buttons-group {
     display: flex;
@@ -870,7 +878,6 @@ input, button, select, textarea {
 
 /* Box medico: Intolleranze alimentari e patologie */
 .medical-box {
-    grid-column: span 2;
     font-size: 12px;
     font-weight: 600;
     padding: 8px 12px;

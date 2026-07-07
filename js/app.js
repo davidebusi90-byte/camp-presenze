@@ -597,12 +597,12 @@ function renderStudentsList() {
         // Box intolleranze alimentari
         const hasIntolleranze = student.intolleranze && student.intolleranze.trim() !== '';
         const intolleranzeBoxClass = hasIntolleranze ? 'medical-box intolleranze' : 'medical-box neutral';
-        const intolleranzeText = hasIntolleranze ? student.intolleranze : 'Nessuna intolleranza alimentare';
+        const intolleranzeText = hasIntolleranze ? student.intolleranze : 'Nessuna';
 
         // Box patologie sanitarie
         const hasPatologie = student.patologie && student.patologie.trim() !== '';
         const patologieBoxClass = hasPatologie ? 'medical-box patologie' : 'medical-box neutral';
-        const patologieText = hasPatologie ? student.patologie : 'Nessuna patologia sanitaria';
+        const patologieText = hasPatologie ? student.patologie : 'Nessuna';
 
         card.innerHTML = `
             <div class="student-card-header">
@@ -610,8 +610,8 @@ function renderStudentsList() {
                     <span class="student-name">${student.nome} ${student.cognome}</span>
                     <div class="badges-row">
                         <span class="badge-category ${student.categoria}">${student.categoria}</span>
-                        ${specialTimesHtml}
                     </div>
+                    ${specialTimesHtml ? `<div class="student-times-stack">${specialTimesHtml}</div>` : ''}
                 </div>
                 
                 <div class="presence-buttons-group">
@@ -642,13 +642,13 @@ function renderStudentsList() {
                 
                 <div class="${intolleranzeBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le intolleranze alimentari">
                     <i data-lucide="utensils"></i>
-                    <span class="medical-label">Intolleranze Alimentari:</span>
+                    <span class="medical-label">Intolleranze:</span>
                     <span class="medical-value">${intolleranzeText}</span>
                 </div>
                 
                 <div class="${patologieBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le patologie sanitarie">
                     <i data-lucide="shield-alert"></i>
-                    <span class="medical-label">Patologie Sanitarie:</span>
+                    <span class="medical-label">Patologie:</span>
                     <span class="medical-value">${patologieText}</span>
                 </div>
             </div>
