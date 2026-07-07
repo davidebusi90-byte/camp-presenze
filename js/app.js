@@ -196,52 +196,126 @@ function registerEventListeners() {
         });
     });
 
-    // 5. Modale Gestione Orari (Ingresso/Uscita anticipata)
-    const timeModal = document.getElementById('time-modal');
+    // 5. Modale Gestione Intolleranze e Patologie
+    const medicalModal = document.getElementById('medical-modal');
+    const timeEditModal = document.getElementById('time-edit-modal');
     const closeModalBtns = document.querySelectorAll('.close-modal-btn');
     
     closeModalBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            timeModal.classList.add('hidden');
+            medicalModal.classList.add('hidden');
+            timeEditModal.classList.add('hidden');
             document.getElementById('activity-modal').classList.add('hidden');
         });
     });
 
-    document.getElementById('btn-save-times').addEventListener('click', async () => {
-        const studentId = document.getElementById('modal-student-id').value;
-        const entryTime = document.getElementById('input-early-entry').value;
-        const exitTime = document.getElementById('input-early-exit').value;
+    document.getElementById('btn-save-medical').addEventListener('click', async () => {
+        const studentId = document.getElementById('medical-modal-student-id').value;
+        const medicalInfo = document.getElementById('input-medical-info').value.trim();
 
-        // Trova l'allievo e aggiorna gli orari
+        // Trova l'allievo e aggiorna le sue intolleranze
         const student = AppState.students.find(s => s.id === studentId);
         if (student) {
-            student.entrataAnticipata = entryTime;
-            student.uscitaAnticipata = exitTime;
+            const oldInfo = student.intolleranze;
+            student.intolleranze = medicalInfo;
             
-            // Salva tramite API
-            const dateStr = formatDateToISO(AppState.currentDate);
-            await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
-            
-            timeModal.classList.add('hidden');
-            renderStudentsList();
-            updateStatsSummary();
+            try {
+                // Salva tramite API
+                await window.CampAPI.saveStudentMedicalInfo(AppState.currentCamp, studentId, medicalInfo);
+                medicalModal.classList.add('hidden');
+                renderStudentsList();
+            } catch (err) {
+                // Ripristina stato precedente
+                student.intolleranze = oldInfo;
+                alert("Errore durante il salvataggio su Supabase!\n\nVerifica:\n1. Di aver inserito URL e Anon Key corretti nella scheda 'Impostazioni'.\n2. Di aver eseguito la query SQL per aggiungere la colonna 'intolleranze' sul tuo database Supabase.\n\nDettaglio errore: " + err.message);
+                renderStudentsList();
+            }
         }
     });
 
-    document.getElementById('btn-clear-times').addEventListener('click', async () => {
-        const studentId = document.getElementById('modal-student-id').value;
+    document.getElementById('btn-clear-medical').addEventListener('click', async () => {
+        const studentId = document.getElementById('medical-modal-student-id').value;
         const student = AppState.students.find(s => s.id === studentId);
         if (student) {
-            student.entrataAnticipata = '';
-            student.uscitaAnticipata = '';
+            const oldInfo = student.intolleranze;
+            student.intolleranze = '';
             
-            // Salva tramite API
-            const dateStr = formatDateToISO(AppState.currentDate);
-            await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
+            try {
+                // Salva tramite API
+                await window.CampAPI.saveStudentMedicalInfo(AppState.currentCamp, studentId, '');
+                medicalModal.classList.add('hidden');
+                renderStudentsList();
+            } catch (err) {
+                student.intolleranze = oldInfo;
+                alert("Errore durante la cancellazione su Supabase!\n\nDettaglio errore: " + err.message);
+                renderStudentsList();
+            }
+        }
+    });
+
+    // Modale Modifica Singolo Orario (Entrata / Uscita)
+    document.getElementById('btn-save-time').addEventListener('click', async () => {
+        const studentId = document.getElementById('time-edit-student-id').value;
+        const timeType = document.getElementById('time-edit-type').value; // 'entry' o 'exit'
+        const timeVal = document.getElementById('input-edit-time').value;
+
+        const student = AppState.students.find(s => s.id === studentId);
+        if (student) {
+            const oldVal = (timeType === 'entry') ? student.entrataAnticipata : student.uscitaAnticipata;
+            if (timeType === 'entry') {
+                student.entrataAnticipata = timeVal;
+            } else {
+                student.uscitaAnticipata = timeVal;
+            }
             
-            timeModal.classList.add('hidden');
-            renderStudentsList();
-            updateStatsSummary();
+            try {
+                // Salva tramite API
+                const dateStr = formatDateToISO(AppState.currentDate);
+                await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
+                timeEditModal.classList.add('hidden');
+                renderStudentsList();
+                updateStatsSummary();
+            } catch (err) {
+                if (timeType === 'entry') {
+                    student.entrataAnticipata = oldVal;
+                } else {
+                    student.uscitaAnticipata = oldVal;
+                }
+                alert("Errore durante il salvataggio dell'orario su Supabase!\n\nDettaglio errore: " + err.message);
+                renderStudentsList();
+            }
+        }
+    });
+
+    document.getElementById('btn-delete-time').addEventListener('click', async () => {
+        const studentId = document.getElementById('time-edit-student-id').value;
+        const timeType = document.getElementById('time-edit-type').value;
+
+        const student = AppState.students.find(s => s.id === studentId);
+        if (student) {
+            const oldVal = (timeType === 'entry') ? student.entrataAnticipata : student.uscitaAnticipata;
+            if (timeType === 'entry') {
+                student.entrataAnticipata = '';
+            } else {
+                student.uscitaAnticipata = '';
+            }
+            
+            try {
+                // Salva tramite API
+                const dateStr = formatDateToISO(AppState.currentDate);
+                await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
+                timeEditModal.classList.add('hidden');
+                renderStudentsList();
+                updateStatsSummary();
+            } catch (err) {
+                if (timeType === 'entry') {
+                    student.entrataAnticipata = oldVal;
+                } else {
+                    student.uscitaAnticipata = oldVal;
+                }
+                alert("Errore durante l'eliminazione dell'orario su Supabase!\n\nDettaglio errore: " + err.message);
+                renderStudentsList();
+            }
         }
     });
 
@@ -342,13 +416,27 @@ function registerEventListeners() {
         await loadActivitiesData();
     });
 
-    // 9. Stampa liste PDF al click sui box di riepilogo
+    // 9. Filtro allievi al click sui box di riepilogo
     const statCards = document.querySelectorAll('.stat-card.clickable');
     statCards.forEach(card => {
         card.addEventListener('click', (e) => {
-            const printType = e.currentTarget.getAttribute('data-print-type');
-            if (printType) {
-                printList(printType);
+            const filterType = e.currentTarget.getAttribute('data-filter-type');
+            if (filterType) {
+                // Imposta il filtro attivo
+                AppState.activeFilter = filterType;
+                
+                // Aggiorna lo stato attivo delle pillole di filtro
+                const filterPills = document.querySelectorAll('.filter-pill');
+                filterPills.forEach(pill => {
+                    if (pill.getAttribute('data-filter') === filterType) {
+                        pill.classList.add('active');
+                    } else {
+                        pill.classList.remove('active');
+                    }
+                });
+                
+                // Renderizza la lista filtrata
+                renderStudentsList();
             }
         });
     });
@@ -453,6 +541,10 @@ function renderStudentsList() {
         filteredStudents = filteredStudents.filter(s => s.presente === true);
     } else if (AppState.activeFilter === 'absent') {
         filteredStudents = filteredStudents.filter(s => s.presente === false);
+    } else if (AppState.activeFilter === 'precamp') {
+        filteredStudents = filteredStudents.filter(s => s.preCamp === true);
+    } else if (AppState.activeFilter === 'postcamp') {
+        filteredStudents = filteredStudents.filter(s => s.postCamp === true);
     }
 
     // Caso lista vuota
@@ -482,19 +574,21 @@ function renderStudentsList() {
         let specialTimesHtml = '';
         if (student.entrataAnticipata) {
             specialTimesHtml += `
-                <span class="badge-special-time" title="Entrata Anticipata">
+                <span class="badge-special-time" title="Clicca per modificare l'orario di ingresso" data-student-id="${student.id}" data-time-type="entry">
                     <i data-lucide="clock"></i> Entra: ${student.entrataAnticipata}
                 </span>`;
         }
         if (student.uscitaAnticipata) {
             specialTimesHtml += `
-                <span class="badge-special-time" title="Uscita Anticipata">
+                <span class="badge-special-time" title="Clicca per modificare l'orario di uscita" data-student-id="${student.id}" data-time-type="exit">
                     <i data-lucide="log-out"></i> Esce: ${student.uscitaAnticipata}
                 </span>`;
         }
 
-        // Determina se il pulsante orari ha orari configurati (per lo stile)
-        const hasSpecialTimes = student.entrataAnticipata || student.uscitaAnticipata;
+        // Box intolleranze/patologie mediche
+        const hasMedical = student.intolleranze && student.intolleranze.trim() !== '';
+        const medicalBoxClass = hasMedical ? 'medical-box' : 'medical-box neutral';
+        const medicalText = hasMedical ? student.intolleranze : 'Nessuna intolleranza o patologia';
 
         card.innerHTML = `
             <div class="student-card-header">
@@ -532,10 +626,11 @@ function renderStudentsList() {
                     </label>
                 </div>
                 
-                <button class="btn-time-config ${hasSpecialTimes ? 'active' : ''}" data-student-id="${student.id}">
-                    <i data-lucide="clock-arrow-up-right"></i>
-                    <span>${hasSpecialTimes ? 'Modifica Orari Anticipo' : 'Segna Entrata/Uscita Anticipata'}</span>
-                </button>
+                <div class="${medicalBoxClass}" data-student-id="${student.id}" title="Clicca per modificare intolleranze alimentari e patologie">
+                    <i data-lucide="shield-alert"></i>
+                    <span class="medical-label">Patologie / Intolleranze:</span>
+                    <span class="medical-value">${medicalText}</span>
+                </div>
             </div>
         `;
         
@@ -572,13 +667,7 @@ function bindStudentCardEvents() {
                 
                 student.presente = newState;
 
-                // Se l'allievo diventa assente o neutro, azzeriamo pre/post camp e orari in locale per pulizia
-                if (newState !== true) {
-                    student.preCamp = false;
-                    student.postCamp = false;
-                    student.entrataAnticipata = '';
-                    student.uscitaAnticipata = '';
-                }
+                // Non azzeriamo più pre/post camp per poter contare gli iscritti al servizio per quel giorno
                 
                 // Salva lo stato
                 await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
@@ -637,22 +726,43 @@ function bindStudentCardEvents() {
         });
     });
 
-    // Bottone Apertura Modale Orari
-    const timeConfigBtns = document.querySelectorAll('.btn-time-config');
-    timeConfigBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    // Apertura Modale Orario Singolo al click sui badge orario
+    const specialTimeBadges = document.querySelectorAll('.badge-special-time');
+    specialTimeBadges.forEach(badge => {
+        badge.addEventListener('click', (e) => {
+            const studentId = e.currentTarget.getAttribute('data-student-id');
+            const timeType = e.currentTarget.getAttribute('data-time-type'); // 'entry' o 'exit'
+            const student = AppState.students.find(s => s.id === studentId);
+            
+            if (student) {
+                document.getElementById('time-edit-student-name').innerText = `${student.nome} ${student.cognome}`;
+                document.getElementById('time-edit-student-id').value = student.id;
+                document.getElementById('time-edit-type').value = timeType;
+                
+                const timeVal = (timeType === 'entry') ? student.entrataAnticipata : student.uscitaAnticipata;
+                document.getElementById('input-edit-time').value = timeVal || '';
+                
+                document.getElementById('label-edit-time').innerText = (timeType === 'entry') ? 'Orario d\'Ingresso Anticipato' : 'Orario d\'Uscita Anticipato';
+                document.getElementById('time-edit-title').innerText = (timeType === 'entry') ? 'Modifica Orario Ingresso' : 'Modifica Orario Uscita';
+                
+                document.getElementById('time-edit-modal').classList.remove('hidden');
+            }
+        });
+    });
+
+    // Apertura Modale Intolleranze al click sul box medico
+    const medicalBoxes = document.querySelectorAll('.medical-box');
+    medicalBoxes.forEach(box => {
+        box.addEventListener('click', (e) => {
             const studentId = e.currentTarget.getAttribute('data-student-id');
             const student = AppState.students.find(s => s.id === studentId);
             
             if (student) {
-                // Imposta valori nella modale
-                document.getElementById('modal-student-name').innerText = `${student.nome} ${student.cognome}`;
-                document.getElementById('modal-student-id').value = student.id;
-                document.getElementById('input-early-entry').value = student.entrataAnticipata || '';
-                document.getElementById('input-early-exit').value = student.uscitaAnticipata || '';
+                document.getElementById('medical-modal-student-name').innerText = `${student.nome} ${student.cognome}`;
+                document.getElementById('medical-modal-student-id').value = student.id;
+                document.getElementById('input-medical-info').value = student.intolleranze || '';
                 
-                // Mostra la modale
-                document.getElementById('time-modal').classList.remove('hidden');
+                document.getElementById('medical-modal').classList.remove('hidden');
             }
         });
     });
@@ -771,17 +881,23 @@ function updateStatsSummary() {
     const total = AppState.students.length;
     const present = AppState.students.filter(s => s.presente === true).length;
     
+    const babyTotal = AppState.students.filter(s => s.categoria === 'baby').length;
     const babyPresent = AppState.students.filter(s => s.presente === true && s.categoria === 'baby').length;
+    
+    const kidsTotal = AppState.students.filter(s => s.categoria === 'bambino').length;
     const kidsPresent = AppState.students.filter(s => s.presente === true && s.categoria === 'bambino').length;
     
+    const preCampTotal = AppState.students.filter(s => s.preCamp === true).length;
     const preCampActive = AppState.students.filter(s => s.presente === true && s.preCamp === true).length;
+    
+    const postCampTotal = AppState.students.filter(s => s.postCamp === true).length;
     const postCampActive = AppState.students.filter(s => s.presente === true && s.postCamp === true).length;
 
     document.getElementById('stat-total-present').innerText = `${present}/${total}`;
-    document.getElementById('stat-baby-present').innerText = babyPresent;
-    document.getElementById('stat-kids-present').innerText = kidsPresent;
-    document.getElementById('stat-pre-present').innerText = preCampActive;
-    document.getElementById('stat-post-present').innerText = postCampActive;
+    document.getElementById('stat-baby-present').innerText = `${babyPresent}/${babyTotal}`;
+    document.getElementById('stat-kids-present').innerText = `${kidsPresent}/${kidsTotal}`;
+    document.getElementById('stat-pre-present').innerText = `${preCampActive}/${preCampTotal}`;
+    document.getElementById('stat-post-present').innerText = `${postCampActive}/${postCampTotal}`;
 }
 
 // Aggiorna l'icona e lo stato visualizzato online/offline
@@ -835,162 +951,4 @@ function formatDateToISO(date) {
     return `${year}-${month}-${day}`;
 }
 
-// Genera una finestra di stampa pulita per esportare l'elenco selezionato in PDF
-function printList(type) {
-    let listTitle = "";
-    let filteredStudents = [];
 
-    if (type === 'presenti') {
-        listTitle = `Lista Allievi Presenti`;
-        filteredStudents = AppState.students.filter(s => s.presente === true);
-    } else if (type === 'baby') {
-        listTitle = `Lista Baby Presenti`;
-        filteredStudents = AppState.students.filter(s => s.presente === true && s.categoria === 'baby');
-    } else if (type === 'bambini') {
-        listTitle = `Lista Bambini Presenti`;
-        filteredStudents = AppState.students.filter(s => s.presente === true && s.categoria === 'bambino');
-    } else if (type === 'precamp') {
-        listTitle = `Lista Allievi in Pre-Camp`;
-        filteredStudents = AppState.students.filter(s => s.presente === true && s.preCamp === true);
-    } else if (type === 'postcamp') {
-        listTitle = `Lista Allievi in Post-Camp`;
-        filteredStudents = AppState.students.filter(s => s.presente === true && s.postCamp === true);
-    }
-
-    if (filteredStudents.length === 0) {
-        alert("Nessun allievo presente in questo elenco per la giornata selezionata.");
-        return;
-    }
-
-    // Ordina alfabeticamente per cognome
-    filteredStudents.sort((a, b) => a.cognome.localeCompare(b.cognome));
-
-    // Costruisce la finestra di stampa
-    const printWindow = window.open('', '_blank');
-    
-    let rowsHtml = '';
-    filteredStudents.forEach((s, index) => {
-        let services = [];
-        if (s.preCamp) services.push(`Pre-Camp (${s.entrataAnticipata || '08:00'})`);
-        if (s.postCamp) services.push(`Post-Camp (${s.uscitaAnticipata || '13:00'})`);
-        
-        let servicesText = services.join(', ') || 'Nessuno';
-        if (type === 'precamp') {
-            servicesText = `Entrata: ${s.entrataAnticipata || '08:00'}`;
-        } else if (type === 'postcamp') {
-            servicesText = `Uscita: ${s.uscitaAnticipata || '13:00'}`;
-        }
-
-        rowsHtml += `
-            <tr>
-                <td style="text-align: center; width: 40px;">${index + 1}</td>
-                <td><strong>${s.cognome.toUpperCase()}</strong></td>
-                <td>${s.nome}</td>
-                <td style="text-transform: uppercase; font-size: 12px; text-align: center;">${s.categoria}</td>
-                <td>${servicesText}</td>
-            </tr>
-        `;
-    });
-
-    const campLabel = AppState.currentCamp === 'summer' ? 'Summer Camp ☀️' : AppState.currentCamp === 'spring' ? 'Spring Camp 🌸' : 'Winter Camp ❄️';
-    const formattedDate = document.getElementById('date-display').innerText;
-
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>${listTitle}</title>
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                    color: #2D3748;
-                    margin: 0;
-                    padding: 30px;
-                    background-color: white;
-                }
-                .print-header {
-                    text-align: center;
-                    border-bottom: 2px solid #2D3748;
-                    padding-bottom: 15px;
-                    margin-bottom: 25px;
-                }
-                .print-title {
-                    font-size: 24px;
-                    font-weight: 800;
-                    margin: 0 0 5px 0;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    color: #1A5276;
-                }
-                .print-meta {
-                    font-size: 14px;
-                    color: #718096;
-                    margin: 0;
-                    font-weight: 500;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 10px;
-                }
-                th, td {
-                    border: 1px solid #CBD5E0;
-                    padding: 10px 12px;
-                    text-align: left;
-                    font-size: 13px;
-                }
-                th {
-                    background-color: #EDF2F7;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    font-size: 11px;
-                    letter-spacing: 0.5px;
-                }
-                tr:nth-child(even) {
-                    background-color: #F7FAFC;
-                }
-                .footer {
-                    margin-top: 35px;
-                    text-align: right;
-                    font-size: 11px;
-                    color: #A0AEC0;
-                    border-top: 1px solid #E2E8F0;
-                    padding-top: 10px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="print-header">
-                <h1 class="print-title">${listTitle}</h1>
-                <p class="print-meta">${campLabel} &mdash; ${formattedDate}</p>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="text-align: center;">N°</th>
-                        <th>Cognome</th>
-                        <th>Nome</th>
-                        <th style="text-align: center;">Categoria</th>
-                        <th>Servizi / Orari</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rowsHtml}
-                </tbody>
-            </table>
-            <div class="footer">
-                Documento generato automaticamente il ${new Date().toLocaleDateString('it-IT')} alle ${new Date().toLocaleTimeString('it-IT')}
-            </div>
-            <script>
-                window.onload = function() {
-                    window.print();
-                    // Chiude la finestra di stampa dopo la chiusura del pannello di stampa nativo
-                    setTimeout(function() { window.close(); }, 500);
-                };
-            </script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-}

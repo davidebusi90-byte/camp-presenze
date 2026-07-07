@@ -77,25 +77,25 @@
 
                 <!-- QUICK STATS SUMMARY -->
                 <div class="quick-stats">
-                    <div class="stat-card clickable" data-print-type="presenti" title="Clicca per stampare la lista dei Presenti">
+                    <div class="stat-card clickable" data-filter-type="present" title="Clicca per visualizzare la lista dei Presenti">
                         <span class="stat-value" id="stat-total-present">0/0</span>
-                        <span class="stat-label">Presenti <i data-lucide="printer" class="icon-print-small"></i></span>
+                        <span class="stat-label">Presenti</span>
                     </div>
-                    <div class="stat-card clickable" data-print-type="baby" title="Clicca per stampare la lista dei Baby Presenti">
-                        <span class="stat-value" id="stat-baby-present">0</span>
-                        <span class="stat-label">Baby <i data-lucide="printer" class="icon-print-small"></i></span>
+                    <div class="stat-card clickable" data-filter-type="baby" title="Clicca per visualizzare la lista dei Baby Presenti">
+                        <span class="stat-value" id="stat-baby-present">0/0</span>
+                        <span class="stat-label">Baby</span>
                     </div>
-                    <div class="stat-card clickable" data-print-type="bambini" title="Clicca per stampare la lista dei Bambini Presenti">
-                        <span class="stat-value" id="stat-kids-present">0</span>
-                        <span class="stat-label">Bambini <i data-lucide="printer" class="icon-print-small"></i></span>
+                    <div class="stat-card clickable" data-filter-type="bambino" title="Clicca per visualizzare la lista dei Bambini Presenti">
+                        <span class="stat-value" id="stat-kids-present">0/0</span>
+                        <span class="stat-label">Bambini</span>
                     </div>
-                    <div class="stat-card clickable" data-print-type="precamp" title="Clicca per stampare la lista del Pre-Camp">
-                        <span class="stat-value" id="stat-pre-present">0</span>
-                        <span class="stat-label">Pre-Camp <i data-lucide="printer" class="icon-print-small"></i></span>
+                    <div class="stat-card clickable" data-filter-type="precamp" title="Clicca per visualizzare la lista del Pre-Camp">
+                        <span class="stat-value" id="stat-pre-present">0/0</span>
+                        <span class="stat-label">Pre-Camp</span>
                     </div>
-                    <div class="stat-card clickable" data-print-type="postcamp" title="Clicca per stampare la lista del Post-Camp">
-                        <span class="stat-value" id="stat-post-present">0</span>
-                        <span class="stat-label">Post-Camp <i data-lucide="printer" class="icon-print-small"></i></span>
+                    <div class="stat-card clickable" data-filter-type="postcamp" title="Clicca per visualizzare la lista del Post-Camp">
+                        <span class="stat-value" id="stat-post-present">0/0</span>
+                        <span class="stat-label">Post-Camp</span>
                     </div>
                 </div>
 
@@ -113,6 +113,8 @@
                         <button class="filter-pill" data-filter="bambino">Bambini</button>
                         <button class="filter-pill" data-filter="present">Presenti</button>
                         <button class="filter-pill" data-filter="absent">Assenti</button>
+                        <button class="filter-pill" data-filter="precamp">Pre-Camp</button>
+                        <button class="filter-pill" data-filter="postcamp">Post-Camp</button>
                     </div>
                 </div>
 
@@ -226,38 +228,52 @@
         </nav>
     </div>
 
-    <!-- MODAL: DETTAGLI INGRESSO / USCITA ANTICIPATA -->
-    <div id="time-modal" class="modal-backdrop hidden">
+    <!-- MODAL: DETTAGLI INTOLLERANZE E PATOLOGIE -->
+    <div id="medical-modal" class="modal-backdrop hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Gestisci Orari Allievo</h3>
+                <h3 id="medical-modal-title">Intolleranze e Patologie</h3>
                 <button class="close-modal-btn"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body">
-                <p id="modal-student-name" class="modal-student-name">Allievo Esempio</p>
-                <input type="hidden" id="modal-student-id">
+                <p id="medical-modal-student-name" class="modal-student-name">Allievo Esempio</p>
+                <input type="hidden" id="medical-modal-student-id">
                 
                 <div class="form-group">
-                    <label for="input-early-entry">Entrata in Anticipo (Orario)</label>
-                    <div class="input-with-icon">
-                        <i data-lucide="clock-in" class="icon-input"></i>
-                        <input type="time" id="input-early-entry">
-                    </div>
-                    <span class="input-help">Lasciare vuoto se entra ad orario standard.</span>
-                </div>
-
-                <div class="form-group">
-                    <label for="input-early-exit">Uscita in Anticipo (Orario)</label>
-                    <div class="input-with-icon">
-                        <i data-lucide="clock-out" class="icon-input"></i>
-                        <input type="time" id="input-early-exit">
-                    </div>
-                    <span class="input-help">Lasciare vuoto se esce ad orario standard.</span>
+                    <label for="input-medical-info">Intolleranza Alimentare e patologie sanitarie</label>
+                    <textarea id="input-medical-info" rows="4" placeholder="Es. Celiaco, allergia alle arachidi, asma (specificare farmaci da somministrare)..." style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="btn-clear-times" class="btn btn-secondary-outline">Cancella Orari</button>
-                <button id="btn-save-times" class="btn btn-primary">Salva Orari</button>
+                <button id="btn-clear-medical" class="btn btn-secondary-outline">Cancella</button>
+                <button id="btn-save-medical" class="btn btn-primary">Salva Informazioni</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: MODIFICA SINGOLO ORARIO -->
+    <div id="time-edit-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="time-edit-title">Modifica Orario</h3>
+                <button class="close-modal-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="time-edit-student-name" class="modal-student-name">Allievo Esempio</p>
+                <input type="hidden" id="time-edit-student-id">
+                <input type="hidden" id="time-edit-type"> <!-- 'entry' o 'exit' -->
+                
+                <div class="form-group">
+                    <label for="input-edit-time" id="label-edit-time">Orario Speciale</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="clock" class="icon-input"></i>
+                        <input type="time" id="input-edit-time" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-delete-time" class="btn btn-secondary-outline">Rimuovi Orario</button>
+                <button id="btn-save-time" class="btn btn-primary">Salva Orario</button>
             </div>
         </div>
     </div>

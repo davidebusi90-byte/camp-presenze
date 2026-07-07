@@ -18,6 +18,7 @@ CREATE TABLE allievi (
     cognome TEXT NOT NULL,
     categoria TEXT NOT NULL CHECK (categoria IN ('baby', 'bambino')),
     camp TEXT NOT NULL CHECK (camp IN ('summer', 'spring', 'winter')),
+    intolleranze TEXT DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
