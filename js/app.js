@@ -708,10 +708,14 @@ function bindStudentCardEvents() {
             if (student) {
                 student.preCamp = e.target.checked;
                 
-                // Se attiva il preCamp e non ha un orario d'ingresso impostato, suggeriamo l'orario di default (07:45)
-                if (student.preCamp && !student.entrataAnticipata) {
-                    student.entrataAnticipata = '07:45';
-                } else if (!student.preCamp) {
+                // Se attiva il preCamp, impostiamo automaticamente la presenza a true se non è già attiva
+                if (student.preCamp) {
+                    student.presente = true;
+                    // Se attiva il preCamp e non ha un orario d'ingresso impostato, suggeriamo l'orario di default (07:45)
+                    if (!student.entrataAnticipata) {
+                        student.entrataAnticipata = '07:45';
+                    }
+                } else {
                     // se disattiva il preCamp, eliminiamo l'orario d'ingresso anticipato
                     student.entrataAnticipata = '';
                 }
@@ -732,10 +736,14 @@ function bindStudentCardEvents() {
             if (student) {
                 student.postCamp = e.target.checked;
                 
-                // Se attiva il postCamp e non ha un orario di uscita impostato, suggeriamo l'orario di default (17:30)
-                if (student.postCamp && !student.uscitaAnticipata) {
-                    student.uscitaAnticipata = '17:30';
-                } else if (!student.postCamp) {
+                // Se attiva il postCamp, impostiamo automaticamente la presenza a true se non è già attiva
+                if (student.postCamp) {
+                    student.presente = true;
+                    // Se attiva il postCamp e non ha un orario di uscita impostato, suggeriamo l'orario di default (17:30)
+                    if (!student.uscitaAnticipata) {
+                        student.uscitaAnticipata = '17:30';
+                    }
+                } else {
                     student.uscitaAnticipata = '';
                 }
 

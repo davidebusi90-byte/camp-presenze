@@ -221,7 +221,7 @@ const CampAPI = {
                     allievo_id: studentData.id,
                     data: dateStr,
                     camp: camp,
-                    presente: studentData.presente,
+                    presente: studentData.presente === null ? false : studentData.presente,
                     pre_camp: studentData.preCamp,
                     post_camp: studentData.postCamp,
                     entrata_anticipata: studentData.entrataAnticipata || '',
