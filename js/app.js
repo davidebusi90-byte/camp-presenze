@@ -896,8 +896,8 @@ function updateStatsSummary() {
     document.getElementById('stat-total-present').innerText = `${present}/${total}`;
     document.getElementById('stat-baby-present').innerText = `${babyPresent}/${babyTotal}`;
     document.getElementById('stat-kids-present').innerText = `${kidsPresent}/${kidsTotal}`;
-    document.getElementById('stat-pre-present').innerText = `${preCampActive}/${preCampTotal}`;
-    document.getElementById('stat-post-present').innerText = `${postCampActive}/${postCampTotal}`;
+    document.getElementById('stat-pre-present').innerText = preCampActive;
+    document.getElementById('stat-post-present').innerText = postCampActive;
 }
 
 // Aggiorna l'icona e lo stato visualizzato online/offline
