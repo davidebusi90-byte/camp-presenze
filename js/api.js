@@ -233,12 +233,12 @@ const CampAPI = {
                     body: JSON.stringify(payload)
                 });
 
-                if (response.ok) return true;
-                const errText = await response.text();
-                throw new Error(`Errore Supabase (${response.status}): ${errText}`);
+                if (!response.ok) {
+                    const errText = await response.text();
+                    console.warn(`Errore salvataggio Supabase (${response.status}): ${errText}`);
+                }
             } catch (err) {
-                console.error('Errore salvataggio Supabase:', err);
-                throw err; // Rilancia l'errore al chiamante
+                console.warn('Errore connessione o salvataggio Supabase, uso local fallback:', err);
             }
         }
 
