@@ -17,16 +17,16 @@ const DEFAULTS = {
 
 // Dati mock iniziali (fallback offline)
 const MOCK_STUDENTS = [
-    { id: '1', nome: 'Sofia', cognome: 'Rossi', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: 'Allergia al lattosio' },
-    { id: '2', nome: 'Leonardo', cognome: 'Bianchi', categoria: 'bambino', preCamp: true, postCamp: false, entrataAnticipata: '07:45', uscitaAnticipata: '', presente: true, intolleranze: 'Celiachia' },
-    { id: '3', nome: 'Giulia', cognome: 'Ferrari', categoria: 'baby', preCamp: false, postCamp: true, entrataAnticipata: '', uscitaAnticipata: '17:30', presente: true, intolleranze: '' },
-    { id: '4', nome: 'Francesco', cognome: 'Russo', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '' },
-    { id: '5', nome: 'Aurora', cognome: 'Esposito', categoria: 'baby', preCamp: true, postCamp: true, entrataAnticipata: '07:45', uscitaAnticipata: '17:30', presente: true, intolleranze: 'Allergia alle arachidi' },
-    { id: '6', nome: 'Lorenzo', cognome: 'Romano', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '' },
-    { id: '7', nome: 'Alice', cognome: 'Ricci', categoria: 'baby', preCamp: true, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '' },
-    { id: '8', nome: 'Mattia', cognome: 'Bruno', categoria: 'bambino', preCamp: false, postCamp: true, entrataAnticipata: '', uscitaAnticipata: '', presente: true, intolleranze: '' },
-    { id: '9', nome: 'Emma', cognome: 'Marino', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '' },
-    { id: '10', nome: 'Davide', cognome: 'Gallo', categoria: 'bambino', preCamp: true, postCamp: true, entrataAnticipata: '07:45', uscitaAnticipata: '17:30', presente: true, intolleranze: '' }
+    { id: '1', nome: 'Sofia', cognome: 'Rossi', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: 'Allergia al lattosio', patologie: 'Asma (porta inalatore)' },
+    { id: '2', nome: 'Leonardo', cognome: 'Bianchi', categoria: 'bambino', preCamp: true, postCamp: false, entrataAnticipata: '07:45', uscitaAnticipata: '', presente: true, intolleranze: 'Celiachia', patologie: '' },
+    { id: '3', nome: 'Giulia', cognome: 'Ferrari', categoria: 'baby', preCamp: false, postCamp: true, entrataAnticipata: '', uscitaAnticipata: '17:30', presente: true, intolleranze: '', patologie: '' },
+    { id: '4', nome: 'Francesco', cognome: 'Russo', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '', patologie: '' },
+    { id: '5', nome: 'Aurora', cognome: 'Esposito', categoria: 'baby', preCamp: true, postCamp: true, entrataAnticipata: '07:45', uscitaAnticipata: '17:30', presente: true, intolleranze: 'Allergia alle arachidi', patologie: 'Favismo' },
+    { id: '6', nome: 'Lorenzo', cognome: 'Romano', categoria: 'bambino', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '', patologie: '' },
+    { id: '7', nome: 'Alice', cognome: 'Ricci', categoria: 'baby', preCamp: true, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '', patologie: '' },
+    { id: '8', nome: 'Mattia', cognome: 'Bruno', categoria: 'bambino', preCamp: false, postCamp: true, entrataAnticipata: '', uscitaAnticipata: '', presente: true, intolleranze: '', patologie: '' },
+    { id: '9', nome: 'Emma', cognome: 'Marino', categoria: 'baby', preCamp: false, postCamp: false, entrataAnticipata: '', uscitaAnticipata: '', presente: null, intolleranze: '', patologie: '' },
+    { id: '10', nome: 'Davide', cognome: 'Gallo', categoria: 'bambino', preCamp: true, postCamp: true, entrataAnticipata: '07:45', uscitaAnticipata: '17:30', presente: true, intolleranze: '', patologie: '' }
 ];
 
 const MOCK_ACTIVITIES = {
@@ -168,6 +168,7 @@ const CampAPI = {
                         cognome: allievo.cognome,
                         categoria: allievo.categoria,
                         intolleranze: allievo.intolleranze || '',
+                        patologie: allievo.patologie || '',
                         // Se c'è un record di presenza, usa i suoi valori, altrimenti imposta i default (null = Neutro)
                         presente: recordPresenza ? recordPresenza.presente : null,
                         preCamp: recordPresenza ? recordPresenza.pre_camp : false,
@@ -259,7 +260,7 @@ const CampAPI = {
     },
 
     // Aggiorna le intolleranze alimentari e patologie di un allievo
-    async saveStudentMedicalInfo(camp, studentId, intolleranze) {
+    async saveStudentMedicalInfo(camp, studentId, intolleranze, patologie) {
         this.initLocalStore();
 
         if (this.isOnlineMode()) {
@@ -269,14 +270,17 @@ const CampAPI = {
                 const response = await fetch(url, {
                     method: 'PATCH',
                     headers: this.getHeaders(),
-                    body: JSON.stringify({ intolleranze: intolleranze })
+                    body: JSON.stringify({ 
+                        intolleranze: intolleranze,
+                        patologie: patologie
+                    })
                 });
 
                 if (response.ok) return true;
                 const errText = await response.text();
                 throw new Error(`Errore Supabase (${response.status}): ${errText}`);
             } catch (err) {
-                console.error('Errore salvataggio intolleranze Supabase:', err);
+                console.error('Errore salvataggio intolleranze/patologie Supabase:', err);
                 throw err; // Rilancia l'errore al chiamante
             }
         }
@@ -287,6 +291,7 @@ const CampAPI = {
         const studentInRegistry = registry.find(s => s.id === studentId);
         if (studentInRegistry) {
             studentInRegistry.intolleranze = intolleranze;
+            studentInRegistry.patologie = patologie;
             localStorage.setItem('camp_students_registry', JSON.stringify(registry));
         }
 
@@ -298,6 +303,7 @@ const CampAPI = {
                 const student = list.find(s => s.id === studentId);
                 if (student) {
                     student.intolleranze = intolleranze;
+                    student.patologie = patologie;
                 }
             });
             localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(localData));

@@ -211,23 +211,28 @@ function registerEventListeners() {
 
     document.getElementById('btn-save-medical').addEventListener('click', async () => {
         const studentId = document.getElementById('medical-modal-student-id').value;
-        const medicalInfo = document.getElementById('input-medical-info').value.trim();
+        const intolleranzeVal = document.getElementById('input-intolleranze').value.trim();
+        const patologieVal = document.getElementById('input-patologie').value.trim();
 
-        // Trova l'allievo e aggiorna le sue intolleranze
+        // Trova l'allievo e aggiorna le sue informazioni mediche
         const student = AppState.students.find(s => s.id === studentId);
         if (student) {
-            const oldInfo = student.intolleranze;
-            student.intolleranze = medicalInfo;
+            const oldIntolleranze = student.intolleranze;
+            const oldPatologie = student.patologie;
+            
+            student.intolleranze = intolleranzeVal;
+            student.patologie = patologieVal;
             
             try {
                 // Salva tramite API
-                await window.CampAPI.saveStudentMedicalInfo(AppState.currentCamp, studentId, medicalInfo);
+                await window.CampAPI.saveStudentMedicalInfo(AppState.currentCamp, studentId, intolleranzeVal, patologieVal);
                 medicalModal.classList.add('hidden');
                 renderStudentsList();
             } catch (err) {
                 // Ripristina stato precedente
-                student.intolleranze = oldInfo;
-                alert("Errore durante il salvataggio su Supabase!\n\nVerifica:\n1. Di aver inserito URL e Anon Key corretti nella scheda 'Impostazioni'.\n2. Di aver eseguito la query SQL per aggiungere la colonna 'intolleranze' sul tuo database Supabase.\n\nDettaglio errore: " + err.message);
+                student.intolleranze = oldIntolleranze;
+                student.patologie = oldPatologie;
+                alert("Errore durante il salvataggio su Supabase!\n\nVerifica:\n1. Di aver inserito URL e Anon Key corretti nella scheda 'Impostazioni'.\n2. Di aver eseguito la query SQL per aggiungere le colonne 'intolleranze' e 'patologie' sul tuo database Supabase.\n\nDettaglio errore: " + err.message);
                 renderStudentsList();
             }
         }
@@ -237,16 +242,20 @@ function registerEventListeners() {
         const studentId = document.getElementById('medical-modal-student-id').value;
         const student = AppState.students.find(s => s.id === studentId);
         if (student) {
-            const oldInfo = student.intolleranze;
+            const oldIntolleranze = student.intolleranze;
+            const oldPatologie = student.patologie;
+            
             student.intolleranze = '';
+            student.patologie = '';
             
             try {
                 // Salva tramite API
-                await window.CampAPI.saveStudentMedicalInfo(AppState.currentCamp, studentId, '');
+                await window.CampAPI.saveStudentMedicalInfo(AppState.currentCamp, studentId, '', '');
                 medicalModal.classList.add('hidden');
                 renderStudentsList();
             } catch (err) {
-                student.intolleranze = oldInfo;
+                student.intolleranze = oldIntolleranze;
+                student.patologie = oldPatologie;
                 alert("Errore durante la cancellazione su Supabase!\n\nDettaglio errore: " + err.message);
                 renderStudentsList();
             }
@@ -585,10 +594,15 @@ function renderStudentsList() {
                 </span>`;
         }
 
-        // Box intolleranze/patologie mediche
-        const hasMedical = student.intolleranze && student.intolleranze.trim() !== '';
-        const medicalBoxClass = hasMedical ? 'medical-box' : 'medical-box neutral';
-        const medicalText = hasMedical ? student.intolleranze : 'Nessuna intolleranza o patologia';
+        // Box intolleranze alimentari
+        const hasIntolleranze = student.intolleranze && student.intolleranze.trim() !== '';
+        const intolleranzeBoxClass = hasIntolleranze ? 'medical-box intolleranze' : 'medical-box neutral';
+        const intolleranzeText = hasIntolleranze ? student.intolleranze : 'Nessuna intolleranza alimentare';
+
+        // Box patologie sanitarie
+        const hasPatologie = student.patologie && student.patologie.trim() !== '';
+        const patologieBoxClass = hasPatologie ? 'medical-box patologie' : 'medical-box neutral';
+        const patologieText = hasPatologie ? student.patologie : 'Nessuna patologia sanitaria';
 
         card.innerHTML = `
             <div class="student-card-header">
@@ -626,10 +640,16 @@ function renderStudentsList() {
                     </label>
                 </div>
                 
-                <div class="${medicalBoxClass}" data-student-id="${student.id}" title="Clicca per modificare intolleranze alimentari e patologie">
+                <div class="${intolleranzeBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le intolleranze alimentari">
+                    <i data-lucide="utensils"></i>
+                    <span class="medical-label">Intolleranze Alimentari:</span>
+                    <span class="medical-value">${intolleranzeText}</span>
+                </div>
+                
+                <div class="${patologieBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le patologie sanitarie">
                     <i data-lucide="shield-alert"></i>
-                    <span class="medical-label">Patologie / Intolleranze:</span>
-                    <span class="medical-value">${medicalText}</span>
+                    <span class="medical-label">Patologie Sanitarie:</span>
+                    <span class="medical-value">${patologieText}</span>
                 </div>
             </div>
         `;
@@ -760,7 +780,8 @@ function bindStudentCardEvents() {
             if (student) {
                 document.getElementById('medical-modal-student-name').innerText = `${student.nome} ${student.cognome}`;
                 document.getElementById('medical-modal-student-id').value = student.id;
-                document.getElementById('input-medical-info').value = student.intolleranze || '';
+                document.getElementById('input-intolleranze').value = student.intolleranze || '';
+                document.getElementById('input-patologie').value = student.patologie || '';
                 
                 document.getElementById('medical-modal').classList.remove('hidden');
             }

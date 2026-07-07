@@ -868,13 +868,9 @@ input, button, select, textarea {
     transform: translateX(14px);
 }
 
-/* Pulsante per impostare orari straordinari */
 /* Box medico: Intolleranze alimentari e patologie */
 .medical-box {
     grid-column: span 2;
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px dashed rgba(239, 68, 68, 0.35);
-    color: #C53030;
     font-size: 12px;
     font-weight: 600;
     padding: 8px 12px;
@@ -884,11 +880,27 @@ input, button, select, textarea {
     gap: 6px;
     cursor: pointer;
     transition: var(--transition);
+    border: 1px dashed transparent;
 }
 
+/* Intolleranze: Arancione/Giallo */
+.medical-box.intolleranze {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #B45309;
+}
+
+/* Patologie: Rosso */
+.medical-box.patologie {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #C53030;
+}
+
+/* Neutro (vuoto) */
 .medical-box.neutral {
     background: #F7FAFC;
-    border: 1px dashed var(--border-color);
+    border-color: var(--border-color);
     color: var(--text-muted);
 }
 
