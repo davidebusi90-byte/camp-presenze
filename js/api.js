@@ -142,7 +142,7 @@ const CampAPI = {
         }
 
         // PostgREST supporta l'UPSERT nativo tramite POST + l'header "Prefer: resolution=merge-duplicates"
-        const url = `${config.url}/rest/v1/presenze`;
+        const url = `${config.url}/rest/v1/presenze?on_conflict=allievo_id,data`;
         const headers = this.getHeaders();
         headers['Prefer'] = 'resolution=merge-duplicates'; // Forza l'inserimento/aggiornamento su vincolo unico (allievo_id, data)
 

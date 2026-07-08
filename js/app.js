@@ -667,6 +667,7 @@ function bindStudentCardEvents() {
             const student = AppState.students.find(s => s.id === studentId);
             
             if (student) {
+                const oldState = student.presente;
                 // Determina il nuovo stato di presenza (se clicca quello già attivo, torna a null/Neutro)
                 let newState = null;
                 if (targetState === 'present') {
@@ -679,12 +680,17 @@ function bindStudentCardEvents() {
 
                 // Non azzeriamo più pre/post camp per poter contare gli iscritti al servizio per quel giorno
                 
-                // Salva lo stato
-                await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
-                
-                // Ricarica la lista per applicare correttamente classi e stati disabilitati
-                renderStudentsList();
-                updateStatsSummary();
+                try {
+                    // Salva lo stato
+                    await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
+                    // Ricarica la lista per applicare correttamente classi e stati disabilitati
+                    renderStudentsList();
+                    updateStatsSummary();
+                } catch (err) {
+                    student.presente = oldState;
+                    alert("Errore durante il salvataggio della presenza su Supabase!\n\nDettaglio errore: " + err.message);
+                    renderStudentsList();
+                }
             }
         });
     });
@@ -696,6 +702,10 @@ function bindStudentCardEvents() {
             const studentId = e.target.getAttribute('data-student-id');
             const student = AppState.students.find(s => s.id === studentId);
             if (student) {
+                const oldPreCamp = student.preCamp;
+                const oldPresente = student.presente;
+                const oldEntrata = student.entrataAnticipata;
+
                 student.preCamp = e.target.checked;
                 
                 // Se attiva il preCamp, impostiamo automaticamente la presenza a true se non è già attiva
@@ -710,9 +720,17 @@ function bindStudentCardEvents() {
                     student.entrataAnticipata = '';
                 }
 
-                await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
-                renderStudentsList(); // Reload completo della lista per aggiornare i badge
-                updateStatsSummary();
+                try {
+                    await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
+                    renderStudentsList(); // Reload completo della lista per aggiornare i badge
+                    updateStatsSummary();
+                } catch (err) {
+                    student.preCamp = oldPreCamp;
+                    student.presente = oldPresente;
+                    student.entrataAnticipata = oldEntrata;
+                    alert("Errore durante il salvataggio del Pre-Camp su Supabase!\n\nDettaglio errore: " + err.message);
+                    renderStudentsList();
+                }
             }
         });
     });
@@ -724,6 +742,10 @@ function bindStudentCardEvents() {
             const studentId = e.target.getAttribute('data-student-id');
             const student = AppState.students.find(s => s.id === studentId);
             if (student) {
+                const oldPostCamp = student.postCamp;
+                const oldPresente = student.presente;
+                const oldUscita = student.uscitaAnticipata;
+
                 student.postCamp = e.target.checked;
                 
                 // Se attiva il postCamp, impostiamo automaticamente la presenza a true se non è già attiva
@@ -737,9 +759,17 @@ function bindStudentCardEvents() {
                     student.uscitaAnticipata = '';
                 }
 
-                await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
-                renderStudentsList();
-                updateStatsSummary();
+                try {
+                    await window.CampAPI.saveStudentData(AppState.currentCamp, dateStr, student);
+                    renderStudentsList();
+                    updateStatsSummary();
+                } catch (err) {
+                    student.postCamp = oldPostCamp;
+                    student.presente = oldPresente;
+                    student.uscitaAnticipata = oldUscita;
+                    alert("Errore durante il salvataggio del Post-Camp su Supabase!\n\nDettaglio errore: " + err.message);
+                    renderStudentsList();
+                }
             }
         });
     });

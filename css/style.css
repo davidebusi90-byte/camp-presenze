@@ -656,10 +656,11 @@ input, button, select, textarea {
     background: var(--text-light);
 }
 
-/* Disabilita i controlli interni per card Neutre e Assenti (pointer-events rimosso per consentire l'uso dei toggle e delle note mediche anche da neutro/assente) */
+/* Disabilita i controlli interni per card Neutre e Assenti */
 .student-card.neutral .student-controls,
 .student-card.absent .student-controls {
     opacity: 0.4;
+    pointer-events: none; /* Disabilita click ed eventi sui controlli */
 }
 
 .student-card-header {
