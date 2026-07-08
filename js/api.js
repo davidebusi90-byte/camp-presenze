@@ -35,10 +35,12 @@ const CampAPI = {
 
     // Genera gli header HTTP per Supabase
     getHeaders(key) {
-        const activeKey = key || this.getSupabaseConfig().key;
+        const config = this.getSupabaseConfig();
+        const activeKey = key || config.key;
+        const userToken = localStorage.getItem('camp_user_token');
         return {
             'apikey': activeKey,
-            'Authorization': `Bearer ${activeKey}`,
+            'Authorization': `Bearer ${userToken || activeKey}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
@@ -346,6 +348,45 @@ const CampAPI = {
             throw new Error(`Errore cancellazione attività da Supabase (${response.status}): ${errText}`);
         }
         return true;
+    },
+
+    // Effettua il login su Supabase Auth
+    async login(email, password) {
+        if (!this.isOnlineMode()) {
+            throw new Error('Supabase non configurato. Inserisci URL e Anon Key nelle Impostazioni.');
+        }
+        const config = this.getSupabaseConfig();
+        const url = `${config.url}/auth/v1/token?grant_type=password`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'apikey': config.key,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email.trim(), password: password })
+        });
+        
+        if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            const errMsg = errJson.error_description || errJson.error || 'Credenziali non valide.';
+            throw new Error(errMsg);
+        }
+        
+        const data = await response.json();
+        if (data.access_token) {
+            localStorage.setItem('camp_user_token', data.access_token);
+            localStorage.setItem('camp_user_email', data.user.email);
+            return data;
+        } else {
+            throw new Error('Errore durante la ricezione del token di sessione.');
+        }
+    },
+
+    // Effettua il logout localmente
+    logout() {
+        localStorage.removeItem('camp_user_token');
+        localStorage.removeItem('camp_user_email');
     }
 };
 

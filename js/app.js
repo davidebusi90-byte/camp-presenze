@@ -43,19 +43,32 @@ async function initApp() {
     if (supabaseUrlInput) supabaseUrlInput.value = config.url;
     if (supabaseKeyInput) supabaseKeyInput.value = config.key;
 
-    // Aggiornamento automatico ogni 30 secondi se in modalità online (Supabase collegato)
+    // Applica il tema iniziale
+    applyCampTheme(AppState.currentCamp);
+
+    // Registra i gestori degli eventi (eseguito solo una volta all'avvio)
+    registerEventListeners();
+
+    // Controlla se l'utente è loggato
+    const token = localStorage.getItem('camp_user_token');
+    if (!token && window.CampAPI.isOnlineMode()) {
+        document.getElementById('login-screen').classList.remove('hidden');
+        return; // Interrompe il caricamento iniziale dei dati
+    }
+
+    // Se loggato, mostra l'email
+    if (token) {
+        const emailEl = document.getElementById('logged-user-email');
+        if (emailEl) emailEl.innerText = localStorage.getItem('camp_user_email') || 'Staff';
+    }
+
+    // Aggiornamento automatico ogni 30 secondi se in modalità online (Supabase collegato e utente loggato)
     setInterval(async () => {
-        if (AppState.currentTab === 'panel-presenze' && window.CampAPI.isOnlineMode()) {
+        if (AppState.currentTab === 'panel-presenze' && window.CampAPI.isOnlineMode() && localStorage.getItem('camp_user_token')) {
             console.log('Auto-refresh delle presenze da Supabase...');
             await loadStudentsData(true);
         }
     }, 30000);
-
-    // Applica il tema iniziale
-    applyCampTheme(AppState.currentCamp);
-
-    // Registra i gestori degli eventi
-    registerEventListeners();
 
     // Carica i dati per la prima volta
     await loadCurrentTabContent();
@@ -533,8 +546,75 @@ function registerEventListeners() {
                     renderStudentsList();
                     updateStatsSummary();
                 } catch (err) {
+                    if (checkAuthError(err)) return;
                     alert("Errore durante l'eliminazione dell'allievo da Supabase!\n\nDettaglio errore: " + err.message);
                 }
+            }
+        });
+    }
+
+    // 11. Gestione Login e Logout
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const emailInput = document.getElementById('login-email');
+            const passwordInput = document.getElementById('login-password');
+            const errorMsg = document.getElementById('login-error-msg');
+            const errorText = document.getElementById('login-error-text');
+            const submitBtn = document.getElementById('btn-submit-login');
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (!email || !password) return;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; display:inline-block;"></div>';
+            errorMsg.classList.add('hidden');
+            
+            try {
+                await window.CampAPI.login(email, password);
+                
+                // Nascondi schermata di login
+                document.getElementById('login-screen').classList.add('hidden');
+                
+                // Imposta email account
+                const emailEl = document.getElementById('logged-user-email');
+                if (emailEl) emailEl.innerText = email;
+                
+                // Pulisci password
+                passwordInput.value = '';
+                
+                // Carica i dati per la prima volta
+                await loadCurrentTabContent();
+            } catch (err) {
+                console.error("Login fallito:", err);
+                errorText.innerText = err.message || 'Credenziali errate o errore di connessione.';
+                errorMsg.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Accedi</span>';
+            }
+        });
+    }
+
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            if (confirm("Sei sicuro di voler effettuare il logout? Per rientrare nell'app dovrai accedere di nuovo.")) {
+                window.CampAPI.logout();
+                
+                // Cancella lo stato locale
+                AppState.students = [];
+                AppState.activities = [];
+                renderStudentsList();
+                
+                // Pulisci i campi login
+                document.getElementById('login-password').value = '';
+                
+                // Mostra la schermata di login
+                document.getElementById('login-screen').classList.remove('hidden');
             }
         });
     }
@@ -606,6 +686,7 @@ async function loadStudentsData(silent = false) {
         renderStudentsList();
         updateStatsSummary();
     } catch (err) {
+        if (checkAuthError(err)) return;
         if (!silent) {
             listContainer.innerHTML = `
                 <div class="empty-state">
@@ -965,6 +1046,7 @@ async function loadActivitiesData() {
         AppState.activities = await window.CampAPI.fetchActivities(AppState.currentCamp);
         renderActivitiesList();
     } catch (err) {
+        if (checkAuthError(err)) return;
         listContainer.innerHTML = `<p>Si è verificato un errore durante il caricamento del calendario.</p>`;
     }
 }
@@ -1101,6 +1183,28 @@ function formatDateToISO(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+// Intercettore degli errori per controllare se c'è stato un problema di autenticazione (es. sessione scaduta)
+function checkAuthError(err) {
+    if (err && err.message && (err.message.includes('401') || err.message.toLowerCase().includes('jwt') || err.message.toLowerCase().includes('unauthorized') || err.message.toLowerCase().includes('invalid token'))) {
+        console.warn("Rilevato errore di autenticazione, forzo il logout:", err.message);
+        window.CampAPI.logout();
+        
+        // Pulisce lo stato
+        AppState.students = [];
+        AppState.activities = [];
+        renderStudentsList();
+        
+        // Pulisce campi password e mostra schermata login
+        const passwordInput = document.getElementById('login-password');
+        if (passwordInput) passwordInput.value = '';
+        
+        const loginScreen = document.getElementById('login-screen');
+        if (loginScreen) loginScreen.classList.remove('hidden');
+        return true;
+    }
+    return false;
 }
 
 

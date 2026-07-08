@@ -1461,3 +1461,104 @@ input, button, select, textarea {
         color: #A0AEC0;
     }
 }
+
+/* ==========================================================================
+   SCHERMATA DI LOGIN
+   ========================================================================== */
+.login-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Integrazione con i temi del camp */
+.theme-summer .login-backdrop {
+    background: radial-gradient(circle at 50% 50%, rgba(255, 249, 245, 0.7), rgba(255, 242, 235, 0.85));
+}
+.theme-spring .login-backdrop {
+    background: radial-gradient(circle at 50% 50%, rgba(246, 252, 248, 0.7), rgba(238, 247, 241, 0.85));
+}
+.theme-winter .login-backdrop {
+    background: radial-gradient(circle at 50% 50%, rgba(243, 248, 251, 0.7), rgba(230, 239, 245, 0.85));
+}
+
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--bg-glass-modal);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 36px 28px;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+    box-sizing: border-box;
+    animation: fadeInScale 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-logo-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.login-logo {
+    height: 80px;
+    width: 80px;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.login-card h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.login-subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+}
+
+.login-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+.login-error i {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.login-backdrop.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
