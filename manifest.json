@@ -1,0 +1,22 @@
+{
+  "name": "Ritmo Danza - Presenze Camp",
+  "short_name": "Presenze Camp",
+  "description": "Programma Presenze per Ritmo Danza Camp",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFF9F5",
+  "theme_color": "#E85A1D",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/summer_camp_logo_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/summer_camp_logo_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

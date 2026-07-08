@@ -7,6 +7,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "favicon.ico",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "manifest.json",
+      "use": "@vercel/static"
+    },
+    {
       "src": "css/style.css",
       "use": "@vercel/static"
     },
@@ -16,6 +24,10 @@
     },
     {
       "src": "assets/*.jpg",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/*.png",
       "use": "@vercel/static"
     }
   ]
