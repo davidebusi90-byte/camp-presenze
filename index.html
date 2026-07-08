@@ -156,44 +156,7 @@
                     <h2>Impostazioni e Sincronizzazione</h2>
                 </div>
 
-                <div class="settings-card">
-                    <h3><i data-lucide="database"></i> Configurazione Supabase</h3>
-                    <p class="settings-desc">Inserisci i parametri di connessione del tuo progetto Supabase per sincronizzare le presenze e le attività in cloud.</p>
-                    
-                    <div class="form-group">
-                        <label for="settings-supabase-url">Supabase Project URL</label>
-                        <input type="url" id="settings-supabase-url" placeholder="https://xyz.supabase.co" value="">
-                    </div>
 
-                    <div class="form-group" style="margin-top: 8px;">
-                        <label for="settings-supabase-key">Supabase Anon Key</label>
-                        <input type="text" id="settings-supabase-key" placeholder="Incolla qui la tua anon public key..." value="">
-                    </div>
-
-                    <div class="settings-actions">
-                        <button id="btn-test-api" class="btn btn-secondary">
-                            <i data-lucide="link"></i> Test Connessione
-                        </button>
-                        <button id="btn-save-settings" class="btn btn-primary">
-                            <i data-lucide="save"></i> Salva
-                        </button>
-                    </div>
-                    <div id="api-test-result" class="test-result-message"></div>
-                </div>
-
-                <div class="settings-card">
-                    <h3>Database Locale</h3>
-                    <p class="settings-desc">Gestisci i dati salvati offline sul dispositivo corrente.</p>
-                    <div class="settings-stats-offline">
-                        <div>Stato: <strong id="local-db-status">In uso (Mock data)</strong></div>
-                        <div>Allievi registrati localmente: <strong id="local-db-count">0</strong></div>
-                    </div>
-                    <div class="settings-actions">
-                        <button id="btn-reset-mock" class="btn btn-danger-outline">
-                            <i data-lucide="refresh-cw"></i> Ripristina Dati Esempio
-                        </button>
-                    </div>
-                </div>
 
                 <div class="settings-card developer-card">
                     <h3><i data-lucide="code"></i> Setup Database Supabase</h3>

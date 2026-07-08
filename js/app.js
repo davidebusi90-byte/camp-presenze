@@ -59,7 +59,6 @@ async function initApp() {
 
     // Carica i dati per la prima volta
     await loadCurrentTabContent();
-    updateSettingsStats();
 }
 
 // ==========================================================================
@@ -327,8 +326,6 @@ function registerEventListeners() {
         resultMsg.className = 'test-result-message success';
         resultMsg.innerText = 'Impostazioni salvate con successo!';
         
-        updateSettingsStats();
-        
         setTimeout(() => {
             resultMsg.innerText = '';
         }, 3000);
@@ -351,18 +348,7 @@ function registerEventListeners() {
         }
     });
 
-    document.getElementById('btn-reset-mock').addEventListener('click', async () => {
-        if (confirm('Sei sicuro di voler ripristinare i dati di esempio locali? Questo cancellerà le presenze registrate finora offline.')) {
-            window.CampAPI.resetMockData();
-            updateSettingsStats();
-            alert('Dati di esempio ripristinati correttamente.');
-            if (AppState.currentTab === 'panel-presenze') {
-                await loadStudentsData();
-            } else if (AppState.currentTab === 'panel-calendario') {
-                await loadActivitiesData();
-            }
-        }
-    });
+
 
     // 7. Calendario Attività: Filtro giorni
     const dayPills = document.querySelectorAll('.day-pill');
@@ -480,8 +466,6 @@ async function loadCurrentTabContent() {
         await loadStudentsData();
     } else if (AppState.currentTab === 'panel-calendario') {
         await loadActivitiesData();
-    } else if (AppState.currentTab === 'panel-impostazioni') {
-        updateSettingsStats();
     }
 }
 
@@ -918,30 +902,7 @@ function updateStatsSummary() {
 }
 
 
-// Aggiorna i dati visibili nella sezione Impostazioni
-function updateSettingsStats() {
-    const isOnline = window.CampAPI.isOnlineMode();
-    const statusText = document.getElementById('local-db-status');
-    
-    if (isOnline) {
-        statusText.innerHTML = `<span style="color:var(--success)">Connesso a Supabase Cloud</span>`;
-    } else {
-        statusText.innerHTML = `In uso (Locale / Offline)`;
-    }
 
-    // Mostra il numero di allievi caricati localmente nel mock
-    const localData = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS)) || {};
-    let totalSaved = 0;
-    
-    // Contiamo tutti i record memorizzati in locale
-    Object.keys(localData).forEach(camp => {
-        Object.keys(localData[camp]).forEach(date => {
-            totalSaved += localData[camp][date].length;
-        });
-    });
-
-    document.getElementById('local-db-count').innerText = totalSaved || MOCK_STUDENTS.length;
-}
 
 // ==========================================================================
 // UTILITY HELPERS
