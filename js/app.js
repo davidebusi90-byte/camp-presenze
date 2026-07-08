@@ -8,7 +8,7 @@ const AppState = {
     currentCamp: 'summer',           // 'summer' | 'spring' | 'winter'
     currentDate: new Date(),         // Oggetto Date della giornata selezionata
     currentTab: 'panel-presenze',    // 'panel-presenze' | 'panel-calendario' | 'panel-impostazioni'
-    activeFilter: 'all',             // 'all' | 'baby' | 'bambino' | 'present' | 'absent'
+    activeFilter: 'all',             // 'all' | 'baby' | 'bambino' | 'present' | 'absent' | 'precamp' | 'postcamp' | 'intolleranze' | 'patologie'
     searchQuery: '',                 // Testo digitato nella barra di ricerca
     activeActivityDay: '1',          // '1' (Lun) .. '5' (Ven)
     students: [],                    // Allievi caricati per la giornata corrente
@@ -646,6 +646,10 @@ function renderStudentsList() {
         filteredStudents = filteredStudents.filter(s => s.preCamp === true);
     } else if (AppState.activeFilter === 'postcamp') {
         filteredStudents = filteredStudents.filter(s => s.postCamp === true);
+    } else if (AppState.activeFilter === 'intolleranze') {
+        filteredStudents = filteredStudents.filter(s => s.intolleranze && s.intolleranze.trim() !== '');
+    } else if (AppState.activeFilter === 'patologie') {
+        filteredStudents = filteredStudents.filter(s => s.patologie && s.patologie.trim() !== '');
     }
 
     // Caso lista vuota

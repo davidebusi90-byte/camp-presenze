@@ -777,10 +777,11 @@ input, button, select, textarea {
 
 .student-times-stack {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
     margin-top: 6px;
-    align-items: flex-start;
+    align-items: center;
 }
 
 /* Gruppo pulsanti presenza (Check / X) */
