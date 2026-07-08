@@ -461,6 +461,8 @@ function registerEventListeners() {
             document.getElementById('student-modal-name').value = '';
             document.getElementById('student-modal-surname').value = '';
             document.getElementById('student-modal-category').value = 'baby';
+            document.getElementById('student-modal-intolleranze').value = '';
+            document.getElementById('student-modal-patologie').value = '';
             
             // Nasconde il pulsante di eliminazione
             document.getElementById('btn-delete-student').style.display = 'none';
@@ -478,11 +480,15 @@ function registerEventListeners() {
             const nomeVal = document.getElementById('student-modal-name').value.trim();
             const cognomeVal = document.getElementById('student-modal-surname').value.trim();
             const categoriaVal = document.getElementById('student-modal-category').value;
+            const intolleranzeVal = document.getElementById('student-modal-intolleranze').value.trim();
+            const patologieVal = document.getElementById('student-modal-patologie').value.trim();
             
             const studentData = {
                 nome: nomeVal,
                 cognome: cognomeVal,
-                categoria: categoriaVal
+                categoria: categoriaVal,
+                intolleranze: intolleranzeVal,
+                patologie: patologieVal
             };
             
             try {
@@ -496,6 +502,8 @@ function registerEventListeners() {
                         localStudent.nome = nomeVal;
                         localStudent.cognome = cognomeVal;
                         localStudent.categoria = categoriaVal;
+                        localStudent.intolleranze = intolleranzeVal;
+                        localStudent.patologie = patologieVal;
                     }
                 } else {
                     // INSERIMENTO
@@ -507,8 +515,8 @@ function registerEventListeners() {
                         nome: newStudent.nome,
                         cognome: newStudent.cognome,
                         categoria: newStudent.categoria,
-                        intolleranze: '',
-                        patologie: '',
+                        intolleranze: newStudent.intolleranze || '',
+                        patologie: newStudent.patologie || '',
                         presente: null,
                         preCamp: false,
                         postCamp: false,
@@ -618,6 +626,35 @@ function registerEventListeners() {
             }
         });
     }
+
+    // 12. Gestione Sezione Armadietti
+    const btnCalculateLockers = document.getElementById('btn-calculate-lockers');
+    if (btnCalculateLockers) {
+        btnCalculateLockers.addEventListener('click', () => {
+            runLockerAssignment();
+        });
+    }
+
+    const pillLockersKids = document.getElementById('pill-lockers-kids');
+    const pillLockersBaby = document.getElementById('pill-lockers-baby');
+    const lockersKidsPanel = document.getElementById('lockers-kids-panel');
+    const lockersBabyPanel = document.getElementById('lockers-baby-panel');
+
+    if (pillLockersKids && pillLockersBaby) {
+        pillLockersKids.addEventListener('click', () => {
+            pillLockersKids.classList.add('active');
+            pillLockersBaby.classList.remove('active');
+            if (lockersKidsPanel) lockersKidsPanel.style.display = 'block';
+            if (lockersBabyPanel) lockersBabyPanel.style.display = 'none';
+        });
+
+        pillLockersBaby.addEventListener('click', () => {
+            pillLockersBaby.classList.add('active');
+            pillLockersKids.classList.remove('active');
+            if (lockersBabyPanel) lockersBabyPanel.style.display = 'block';
+            if (lockersKidsPanel) lockersKidsPanel.style.display = 'none';
+        });
+    }
 }
 
 // ==========================================================================
@@ -661,6 +698,8 @@ async function loadCurrentTabContent() {
         await loadStudentsData();
     } else if (AppState.currentTab === 'panel-calendario') {
         await loadActivitiesData();
+    } else if (AppState.currentTab === 'panel-armadietti') {
+        await loadLockersTabContent();
     }
 }
 
@@ -1022,6 +1061,8 @@ function bindStudentCardEvents() {
                 document.getElementById('student-modal-name').value = student.nome;
                 document.getElementById('student-modal-surname').value = student.cognome;
                 document.getElementById('student-modal-category').value = student.categoria;
+                document.getElementById('student-modal-intolleranze').value = student.intolleranze || '';
+                document.getElementById('student-modal-patologie').value = student.patologie || '';
                 
                 // Mostra il pulsante di eliminazione
                 document.getElementById('btn-delete-student').style.display = 'inline-flex';
@@ -1205,6 +1246,296 @@ function checkAuthError(err) {
         return true;
     }
     return false;
+}
+
+// ==========================================================================
+// SEZIONE ARMADIETTI - LOGICA E CALCOLO
+// ==========================================================================
+
+async function loadLockersTabContent() {
+    // Assicura che la lista allievi sia caricata per il camp corrente
+    if (!AppState.students || AppState.students.length === 0) {
+        const dateStr = formatDateToISO(AppState.currentDate);
+        try {
+            AppState.students = await window.CampAPI.fetchStudents(AppState.currentCamp, dateStr);
+        } catch (err) {
+            console.error("Errore nel recupero allievi per armadietti:", err);
+        }
+    }
+    
+    // Carica gli armadietti salvati in localStorage per il camp attivo
+    const tallLockers = localStorage.getItem(`camp_lockers_tall_${AppState.currentCamp}`) || '';
+    const lowLockers = localStorage.getItem(`camp_lockers_low_${AppState.currentCamp}`) || '';
+    
+    const tallInput = document.getElementById('lockers-tall-input');
+    const lowInput = document.getElementById('lockers-low-input');
+    
+    if (tallInput) tallInput.value = tallLockers;
+    if (lowInput) lowInput.value = lowLockers;
+    
+    // Se abbiamo dati salvati o allievi, eseguiamo l'assegnazione iniziale
+    if (tallLockers || lowLockers) {
+        runLockerAssignment();
+    } else {
+        // Nascondi i risultati se non c'è configurazione
+        const lockerStats = document.getElementById('locker-stats');
+        const lockerResults = document.getElementById('locker-results-container');
+        if (lockerStats) lockerStats.style.display = 'none';
+        if (lockerResults) lockerResults.style.display = 'none';
+    }
+}
+
+function runLockerAssignment() {
+    const tallInputVal = document.getElementById('lockers-tall-input').value;
+    const lowInputVal = document.getElementById('lockers-low-input').value;
+    
+    // Salva in localStorage per il camp corrente
+    localStorage.setItem(`camp_lockers_tall_${AppState.currentCamp}`, tallInputVal);
+    localStorage.setItem(`camp_lockers_low_${AppState.currentCamp}`, lowInputVal);
+    
+    // Funzione helper per ripulire e ordinare naturalmente gli armadietti
+    const parseLockers = (inputStr) => {
+        if (!inputStr) return [];
+        return inputStr
+            .split(/[\n,]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    };
+    
+    const tallLockers = parseLockers(tallInputVal);
+    const lowLockers = parseLockers(lowInputVal);
+    
+    // Dividi gli allievi attivi in Bambini (Alti) e Baby (Bassi)
+    // Ordina alfabeticamente per cognome e poi per nome per garantire determinismo
+    const allStudents = [...AppState.students].sort((a, b) => {
+        const compCognome = a.cognome.localeCompare(b.cognome, 'it', { sensitivity: 'base' });
+        if (compCognome !== 0) return compCognome;
+        return a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' });
+    });
+    
+    const kids = allStudents.filter(s => s.categoria === 'bambino');
+    const babies = allStudents.filter(s => s.categoria === 'baby');
+    
+    // Esegui l'assegnazione per ciascun gruppo
+    const kidsAssignment = assignLockersGroup(kids, tallLockers);
+    const babiesAssignment = assignLockersGroup(babies, lowLockers);
+    
+    // Aggiorna l'interfaccia utente
+    renderLockerResults(kidsAssignment, babiesAssignment, tallLockers.length, lowLockers.length);
+}
+
+function assignLockersGroup(students, lockers) {
+    const assignments = [];
+    const unassigned = [];
+    let sharedCount = 0;
+    
+    if (students.length === 0) {
+        return { assignments, unassigned, sharedCount };
+    }
+    
+    // Se non abbiamo armadietti disponibili
+    if (lockers.length === 0) {
+        return {
+            assignments: [],
+            unassigned: students,
+            sharedCount: 0
+        };
+    }
+    
+    const N = students.length;
+    const M = lockers.length;
+    
+    if (N <= M) {
+        // Abbiamo abbastanza armadietti! Ognuno riceve il proprio armadietto singolo.
+        for (let i = 0; i < N; i++) {
+            assignments.push({
+                locker: lockers[i],
+                students: [students[i]],
+                shared: false
+            });
+        }
+    } else {
+        // Gli armadietti non bastano! Dobbiamo mettere insieme allievi con lo stesso cognome.
+        // Raggruppiamo gli allievi per cognome (case-insensitive)
+        const groupsBySurname = {};
+        students.forEach(student => {
+            const key = student.cognome.toLowerCase().trim();
+            if (!groupsBySurname[key]) {
+                groupsBySurname[key] = [];
+            }
+            groupsBySurname[key].push(student);
+        });
+        
+        // Costruiamo la lista di entità richiedenti
+        const entities = [];
+        
+        // Ordiniamo le chiavi dei cognomi in modo alfabetico per garantire determinismo
+        const sortedSurnameKeys = Object.keys(groupsBySurname).sort();
+        
+        sortedSurnameKeys.forEach(key => {
+            const list = groupsBySurname[key];
+            if (list.length > 1) {
+                entities.push({
+                    surname: list[0].cognome,
+                    students: list,
+                    isGroup: true
+                });
+            } else {
+                entities.push({
+                    surname: list[0].cognome,
+                    students: list,
+                    isGroup: false
+                });
+            }
+        });
+        
+        // Assegniamo gli armadietti disponibili alle entità
+        let lockerIndex = 0;
+        
+        entities.forEach(entity => {
+            if (lockerIndex < M) {
+                assignments.push({
+                    locker: lockers[lockerIndex],
+                    students: entity.students,
+                    shared: entity.students.length > 1
+                });
+                if (entity.students.length > 1) {
+                    sharedCount += entity.students.length;
+                }
+                lockerIndex++;
+            } else {
+                // Finiti gli armadietti! Tutti gli allievi di questa entità rimangono senza armadietto
+                entity.students.forEach(s => {
+                    unassigned.push(s);
+                });
+            }
+        });
+    }
+    
+    return { assignments, unassigned, sharedCount };
+}
+
+function renderLockerResults(kidsRes, babiesRes, totalTall, totalLow) {
+    const lockerStats = document.getElementById('locker-stats');
+    const lockerResults = document.getElementById('locker-results-container');
+    
+    // Mostra le sezioni
+    if (lockerStats) lockerStats.style.display = 'grid';
+    if (lockerResults) lockerResults.style.display = 'flex';
+    
+    // Calcola e aggiorna i contatori visivi delle statistiche
+    const totalLockers = totalTall + totalLow;
+    const assignedLockersCount = kidsRes.assignments.length + babiesRes.assignments.length;
+    const totalSharedStudents = kidsRes.sharedCount + babiesRes.sharedCount;
+    const totalUnassignedStudents = kidsRes.unassigned.length + babiesRes.unassigned.length;
+    
+    const statAssigned = document.getElementById('stat-lockers-assigned');
+    const statShared = document.getElementById('stat-lockers-shared');
+    const statUnassigned = document.getElementById('stat-lockers-unassigned');
+    
+    if (statAssigned) statAssigned.innerText = `${assignedLockersCount}/${totalLockers}`;
+    if (statShared) statShared.innerText = totalSharedStudents;
+    if (statUnassigned) statUnassigned.innerText = totalUnassignedStudents;
+    
+    // 1. RENDERIZZA RISULTATI BAMBINI (ALTI)
+    const kidsUnassignedAlert = document.getElementById('kids-unassigned-alert');
+    const kidsUnassignedList = document.getElementById('kids-unassigned-list');
+    const kidsLockersList = document.getElementById('kids-lockers-list');
+    
+    if (kidsRes.unassigned.length > 0) {
+        if (kidsUnassignedAlert) kidsUnassignedAlert.style.display = 'flex';
+        if (kidsUnassignedList) {
+            kidsUnassignedList.innerText = kidsRes.unassigned.map(s => `${s.nome} ${s.cognome}`).join(', ');
+        }
+    } else {
+        if (kidsUnassignedAlert) kidsUnassignedAlert.style.display = 'none';
+    }
+    
+    if (kidsLockersList) {
+        kidsLockersList.innerHTML = '';
+        if (kidsRes.assignments.length === 0) {
+            kidsLockersList.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="inbox"></i>
+                    <p>Nessun armadietto assegnato.</p>
+                </div>`;
+        } else {
+            kidsRes.assignments.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `locker-card ${item.shared ? 'shared' : ''}`;
+                card.innerHTML = `
+                    <div class="locker-info-side">
+                        <div class="locker-icon-wrapper">
+                            ${item.locker}
+                        </div>
+                        <div class="locker-details">
+                            <span class="locker-num-label">Armadietto Alto</span>
+                            <span class="locker-students-names" title="${item.students.map(s => `${s.nome} ${s.cognome}`).join(' & ')}">
+                                ${item.students.map(s => `${s.nome} ${s.cognome}`).join(' & ')}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="locker-status-side">
+                        ${item.shared ? '<span class="badge-shared-locker">Condiviso</span>' : ''}
+                    </div>
+                `;
+                kidsLockersList.appendChild(card);
+            });
+        }
+    }
+    
+    // 2. RENDERIZZA RISULTATI BABY (BASSI)
+    const babyUnassignedAlert = document.getElementById('baby-unassigned-alert');
+    const babyUnassignedList = document.getElementById('baby-unassigned-list');
+    const babyLockersList = document.getElementById('baby-lockers-list');
+    
+    if (babiesRes.unassigned.length > 0) {
+        if (babyUnassignedAlert) babyUnassignedAlert.style.display = 'flex';
+        if (babyUnassignedList) {
+            babyUnassignedList.innerText = babiesRes.unassigned.map(s => `${s.nome} ${s.cognome}`).join(', ');
+        }
+    } else {
+        if (babyUnassignedAlert) babyUnassignedAlert.style.display = 'none';
+    }
+    
+    if (babyLockersList) {
+        babyLockersList.innerHTML = '';
+        if (babiesRes.assignments.length === 0) {
+            babyLockersList.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="inbox"></i>
+                    <p>Nessun armadietto assegnato.</p>
+                </div>`;
+        } else {
+            babiesRes.assignments.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `locker-card ${item.shared ? 'shared' : ''}`;
+                card.innerHTML = `
+                    <div class="locker-info-side">
+                        <div class="locker-icon-wrapper">
+                            ${item.locker}
+                        </div>
+                        <div class="locker-details">
+                            <span class="locker-num-label">Armadietto Basso</span>
+                            <span class="locker-students-names" title="${item.students.map(s => `${s.nome} ${s.cognome}`).join(' & ')}">
+                                ${item.students.map(s => `${s.nome} ${s.cognome}`).join(' & ')}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="locker-status-side">
+                        ${item.shared ? '<span class="badge-shared-locker">Condiviso</span>' : ''}
+                    </div>
+                `;
+                babyLockersList.appendChild(card);
+            });
+        }
+    }
+    
+    // Aggiorna le icone Lucide appena inserite
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 }
 
 

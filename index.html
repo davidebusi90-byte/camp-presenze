@@ -167,6 +167,98 @@
                 </div>
             </section>
 
+            <!-- PANEL: ARMADIETTI -->
+            <section id="panel-armadietti" class="app-panel">
+                <div class="panel-header">
+                    <h2>Gestione Armadietti</h2>
+                </div>
+
+                <!-- CONFIGURATION CARD -->
+                <div class="settings-card">
+                    <h3><i data-lucide="settings-2"></i> Configurazione</h3>
+                    <p class="settings-desc">Inserisci l'elenco degli armadietti disponibili per questo camp, separandoli con virgole o andando a capo.</p>
+                    
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="lockers-tall-input">Armadietti Alti (Bambini)</label>
+                        <textarea id="lockers-tall-input" rows="2" placeholder="Es. 101, 102, 103, 104" style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="lockers-low-input">Armadietti Bassi (Baby)</label>
+                        <textarea id="lockers-low-input" rows="2" placeholder="Es. 1, 2, 3, 4, 5" style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+
+                    <div class="settings-actions" style="margin-top: 12px;">
+                        <button id="btn-calculate-lockers" class="btn btn-primary" style="width: 100%;">
+                            <i data-lucide="refresh-cw"></i> Calcola Assegnazione
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STATS CARD -->
+                <div class="quick-stats" id="locker-stats" style="display: none; grid-template-columns: repeat(3, 1fr);">
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-lockers-assigned">0/0</span>
+                        <span class="stat-label" style="font-size: 9px;">Assegnati</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-lockers-shared" style="color: var(--baby-color);">0</span>
+                        <span class="stat-label" style="font-size: 9px;">In condivisione</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-lockers-unassigned" style="color: var(--danger);">0</span>
+                        <span class="stat-label" style="font-size: 9px;">Senza armadietto</span>
+                    </div>
+                </div>
+
+                <!-- RESULTS SECTION -->
+                <div id="locker-results-container" style="display: none; flex-direction: column; gap: 16px;">
+                    <!-- Category Tabs (Bambini / Baby) -->
+                    <div class="days-nav" style="margin-bottom: 0;">
+                        <button class="day-pill active" id="pill-lockers-kids" style="flex: 1; text-align: center;">Bambini (Alti)</button>
+                        <button class="day-pill" id="pill-lockers-baby" style="flex: 1; text-align: center;">Baby (Bassi)</button>
+                    </div>
+
+                    <!-- BAMBINI RESULTS -->
+                    <div id="lockers-kids-panel" class="locker-category-panel">
+                        <div class="students-list">
+                            <!-- Critical Warning if there are kids without lockers -->
+                            <div id="kids-unassigned-alert" class="empty-state error" style="display: none; padding: 16px; margin-bottom: 8px; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05); flex-direction: row; text-align: left; gap: 12px; align-items: center;">
+                                <i data-lucide="alert-circle" style="color: var(--danger); flex-shrink: 0; width: 24px; height: 24px;"></i>
+                                <div>
+                                    <h4 style="color: var(--danger); font-weight: 700; font-size: 14px;">Attenzione: allievi senza armadietto!</h4>
+                                    <p id="kids-unassigned-list" style="font-size: 12px; color: var(--text-main); margin-top: 4px;"></p>
+                                </div>
+                            </div>
+
+                            <!-- List of lockers -->
+                            <div id="kids-lockers-list" class="locker-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BABY RESULTS -->
+                    <div id="lockers-baby-panel" class="locker-category-panel" style="display: none;">
+                        <div class="students-list">
+                            <!-- Critical Warning if there are babies without lockers -->
+                            <div id="baby-unassigned-alert" class="empty-state error" style="display: none; padding: 16px; margin-bottom: 8px; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05); flex-direction: row; text-align: left; gap: 12px; align-items: center;">
+                                <i data-lucide="alert-circle" style="color: var(--danger); flex-shrink: 0; width: 24px; height: 24px;"></i>
+                                <div>
+                                    <h4 style="color: var(--danger); font-weight: 700; font-size: 14px;">Attenzione: allievi senza armadietto!</h4>
+                                    <p id="baby-unassigned-list" style="font-size: 12px; color: var(--text-main); margin-top: 4px;"></p>
+                                </div>
+                            </div>
+
+                            <!-- List of lockers -->
+                            <div id="baby-lockers-list" class="locker-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- PANEL: IMPOSTAZIONI -->
             <section id="panel-impostazioni" class="app-panel">
                 <div class="panel-header">
@@ -220,6 +312,10 @@
             <button class="nav-item" data-target="panel-calendario">
                 <i data-lucide="calendar"></i>
                 <span>Attività</span>
+            </button>
+            <button class="nav-item" data-target="panel-armadietti">
+                <i data-lucide="archive"></i>
+                <span>Armadietti</span>
             </button>
             <button class="nav-item" data-target="panel-impostazioni">
                 <i data-lucide="settings"></i>
@@ -365,6 +461,16 @@
                             <option value="baby">Baby</option>
                             <option value="bambino">Bambino</option>
                         </select>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="student-modal-intolleranze">Intolleranze Alimentari</label>
+                        <textarea id="student-modal-intolleranze" rows="2" placeholder="Es. Celiaco, Lattosio, Nocciole..." style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="student-modal-patologie">Patologie Sanitarie</label>
+                        <textarea id="student-modal-patologie" rows="2" placeholder="Es. Asma, favismo, allergia polline..." style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

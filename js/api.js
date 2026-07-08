@@ -212,8 +212,8 @@ const CampAPI = {
             nome: studentData.nome,
             cognome: studentData.cognome,
             categoria: studentData.categoria,
-            intolleranze: '',
-            patologie: ''
+            intolleranze: studentData.intolleranze || '',
+            patologie: studentData.patologie || ''
         };
 
         const response = await fetch(url, {
@@ -244,7 +244,9 @@ const CampAPI = {
             body: JSON.stringify({ 
                 nome: studentData.nome,
                 cognome: studentData.cognome,
-                categoria: studentData.categoria
+                categoria: studentData.categoria,
+                intolleranze: studentData.intolleranze || '',
+                patologie: studentData.patologie || ''
             })
         });
 

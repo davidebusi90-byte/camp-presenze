@@ -66,29 +66,29 @@ CREATE POLICY "Accesso totale anonimo allievi" ON allievi FOR ALL USING (true) W
 CREATE POLICY "Accesso totale anonimo presenze" ON presenze FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Accesso totale anonimo attivita" ON attivita FOR ALL USING (true) WITH CHECK (true);
 
--- 7. ALLIEVI DI ESEMPIO INIZIALI (Facoltativo - per testare subito l'applicazione)
-INSERT INTO allievi (nome, cognome, categoria, camp) VALUES
-('Sofia', 'Rossi', 'baby', 'summer'),
-('Giulia', 'Ferrari', 'baby', 'summer'),
-('Aurora', 'Esposito', 'baby', 'summer'),
-('Alice', 'Ricci', 'baby', 'summer'),
-('Emma', 'Marino', 'baby', 'summer'),
-('Leonardo', 'Bianchi', 'bambino', 'summer'),
-('Francesco', 'Russo', 'bambino', 'summer'),
-('Lorenzo', 'Romano', 'bambino', 'summer'),
-('Mattia', 'Bruno', 'bambino', 'summer'),
-('Davide', 'Gallo', 'bambino', 'summer'),
--- Esempio allievi Spring Camp
-('Marco', 'Verdi', 'baby', 'spring'),
-('Elena', 'Neri', 'bambino', 'spring'),
--- Esempio allievi Winter Camp
-('Matteo', 'Poli', 'baby', 'winter'),
-('Chiara', 'Lupi', 'bambino', 'winter');
+-- 7. ALLIEVI DI ESEMPIO INIZIALI (Disabilitato per inserimento dati reali)
+-- INSERT INTO allievi (nome, cognome, categoria, camp) VALUES
+-- ('Sofia', 'Rossi', 'baby', 'summer'),
+-- ('Giulia', 'Ferrari', 'baby', 'summer'),
+-- ('Aurora', 'Esposito', 'baby', 'summer'),
+-- ('Alice', 'Ricci', 'baby', 'summer'),
+-- ('Emma', 'Marino', 'baby', 'summer'),
+-- ('Leonardo', 'Bianchi', 'bambino', 'summer'),
+-- ('Francesco', 'Russo', 'bambino', 'summer'),
+-- ('Lorenzo', 'Romano', 'bambino', 'summer'),
+-- ('Mattia', 'Bruno', 'bambino', 'summer'),
+-- ('Davide', 'Gallo', 'bambino', 'summer'),
+-- -- Esempio allievi Spring Camp
+-- ('Marco', 'Verdi', 'baby', 'spring'),
+-- ('Elena', 'Neri', 'bambino', 'spring'),
+-- -- Esempio allievi Winter Camp
+-- ('Matteo', 'Poli', 'baby', 'winter'),
+-- ('Chiara', 'Lupi', 'bambino', 'winter');
 
--- Attività di esempio per il Summer Camp
-INSERT INTO attivita (camp, nome, giorno, inizio, fine, target) VALUES
-('summer', 'Hip Hop e Ritmo', '1', '09:30', '10:30', 'tutti'),
-('summer', 'Piscina e Giochi d''Acqua', '1', '11:00', '12:30', 'bambino'),
-('summer', 'Laboratorio di Fiabe', '1', '11:00', '12:00', 'baby'),
-('summer', 'Laboratorio Creativo', '2', '10:00', '11:30', 'tutti'),
-('summer', 'Danza Moderna', '3', '09:30', '11:00', 'bambino');
+-- Attività di esempio per il Summer Camp (Disabilitato per inserimento dati reali)
+-- INSERT INTO attivita (camp, nome, giorno, inizio, fine, target) VALUES
+-- ('summer', 'Hip Hop e Ritmo', '1', '09:30', '10:30', 'tutti'),
+-- ('summer', 'Piscina e Giochi d''Acqua', '1', '11:00', '12:30', 'bambino'),
+-- ('summer', 'Laboratorio di Fiabe', '1', '11:00', '12:00', 'baby'),
+-- ('summer', 'Laboratorio Creativo', '2', '10:00', '11:30', 'tutti'),
+-- ('summer', 'Danza Moderna', '3', '09:30', '11:00', 'bambino');
