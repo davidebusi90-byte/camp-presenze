@@ -1066,10 +1066,6 @@ input, button, select, textarea {
     gap: 6px;
 }
 
-.developer-card {
-    border: 1px dashed var(--primary);
-    background: rgba(var(--accent-rgb), 0.02);
-}
 
 .settings-actions {
     display: flex;
