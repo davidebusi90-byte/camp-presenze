@@ -187,27 +187,6 @@ input, button, select, textarea {
     gap: 12px;
 }
 
-/* Badge Sincronizzazione */
-.sync-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: var(--radius-full);
-    transition: var(--transition);
-}
-
-.sync-badge.online {
-    background: var(--success-bg);
-    color: var(--success);
-}
-
-.sync-badge.offline {
-    background: var(--primary-light);
-    color: var(--primary);
-}
 
 /* Pulsanti icone */
 .icon-btn {

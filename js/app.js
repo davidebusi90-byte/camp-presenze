@@ -19,16 +19,6 @@ const AppState = {
 const GIORNI_SETTIMANA = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 const MESI_ANNO = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
 
-// Helper per aggiornare in sicurezza un'icona Lucide che è stata convertita in SVG
-function setLucideIcon(parentElement, newIconName) {
-    const existingIcon = parentElement.querySelector('i') || parentElement.querySelector('svg');
-    if (existingIcon) {
-        const newIcon = document.createElement('i');
-        newIcon.setAttribute('data-lucide', newIconName);
-        existingIcon.replaceWith(newIcon);
-        lucide.createIcons();
-    }
-}
 
 // DOCUMENT READY / INIZIALIZZAZIONE
 document.addEventListener('DOMContentLoaded', () => {
@@ -69,7 +59,6 @@ async function initApp() {
 
     // Carica i dati per la prima volta
     await loadCurrentTabContent();
-    updateSyncStatusBadge();
     updateSettingsStats();
 }
 
@@ -338,7 +327,6 @@ function registerEventListeners() {
         resultMsg.className = 'test-result-message success';
         resultMsg.innerText = 'Impostazioni salvate con successo!';
         
-        updateSyncStatusBadge();
         updateSettingsStats();
         
         setTimeout(() => {
@@ -929,21 +917,6 @@ function updateStatsSummary() {
     document.getElementById('stat-post-present').innerText = postCampActive;
 }
 
-// Aggiorna l'icona e lo stato visualizzato online/offline
-function updateSyncStatusBadge() {
-    const badge = document.getElementById('sync-status');
-    const isOnline = window.CampAPI.isOnlineMode();
-    
-    if (isOnline) {
-        badge.className = 'sync-badge online';
-        badge.querySelector('span').innerText = 'Online';
-        setLucideIcon(badge, 'cloud-lightning');
-    } else {
-        badge.className = 'sync-badge offline';
-        badge.querySelector('span').innerText = 'Local (Offline)';
-        setLucideIcon(badge, 'cloud-off');
-    }
-}
 
 // Aggiorna i dati visibili nella sezione Impostazioni
 function updateSettingsStats() {
