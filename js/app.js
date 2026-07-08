@@ -317,38 +317,48 @@ function registerEventListeners() {
     });
 
     // 6. Impostazioni Supabase e Reset
-    document.getElementById('btn-save-settings').addEventListener('click', () => {
-        const urlValue = document.getElementById('settings-supabase-url').value.trim();
-        const keyValue = document.getElementById('settings-supabase-key').value.trim();
-        window.CampAPI.setSupabaseConfig(urlValue, keyValue);
-        
-        const resultMsg = document.getElementById('api-test-result');
-        resultMsg.className = 'test-result-message success';
-        resultMsg.innerText = 'Impostazioni salvate con successo!';
-        
-        setTimeout(() => {
-            resultMsg.innerText = '';
-        }, 3000);
-    });
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    if (btnSaveSettings) {
+        btnSaveSettings.addEventListener('click', () => {
+            const urlValue = document.getElementById('settings-supabase-url').value.trim();
+            const keyValue = document.getElementById('settings-supabase-key').value.trim();
+            window.CampAPI.setSupabaseConfig(urlValue, keyValue);
+            
+            const resultMsg = document.getElementById('api-test-result');
+            if (resultMsg) {
+                resultMsg.className = 'test-result-message success';
+                resultMsg.innerText = 'Impostazioni salvate con successo!';
+                
+                setTimeout(() => {
+                    resultMsg.innerText = '';
+                }, 3000);
+            }
+        });
+    }
 
-    document.getElementById('btn-test-api').addEventListener('click', async () => {
-        const urlValue = document.getElementById('settings-supabase-url').value.trim();
-        const keyValue = document.getElementById('settings-supabase-key').value.trim();
-        const resultMsg = document.getElementById('api-test-result');
-        resultMsg.className = 'test-result-message';
-        resultMsg.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; display:inline-block; margin-right:8px;"></div> Verifica in corso...';
-        
-        const test = await window.CampAPI.testConnection(urlValue, keyValue);
-        if (test.success) {
-            resultMsg.className = 'test-result-message success';
-            resultMsg.innerText = test.message;
-        } else {
-            resultMsg.className = 'test-result-message error';
-            resultMsg.innerText = test.message;
-        }
-    });
-
-
+    const btnTestApi = document.getElementById('btn-test-api');
+    if (btnTestApi) {
+        btnTestApi.addEventListener('click', async () => {
+            const urlValue = document.getElementById('settings-supabase-url').value.trim();
+            const keyValue = document.getElementById('settings-supabase-key').value.trim();
+            const resultMsg = document.getElementById('api-test-result');
+            if (resultMsg) {
+                resultMsg.className = 'test-result-message';
+                resultMsg.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; display:inline-block; margin-right:8px;"></div> Verification in corso...';
+            }
+            
+            const test = await window.CampAPI.testConnection(urlValue, keyValue);
+            if (resultMsg) {
+                if (test.success) {
+                    resultMsg.className = 'test-result-message success';
+                    resultMsg.innerText = test.message;
+                } else {
+                    resultMsg.className = 'test-result-message error';
+                    resultMsg.innerText = test.message;
+                }
+            }
+        });
+    }
 
     // 7. Calendario Attività: Filtro giorni
     const dayPills = document.querySelectorAll('.day-pill');

@@ -82,35 +82,24 @@ const CampAPI = {
         }
         
         const config = this.getSupabaseConfig();
-        // 1. Scarica tutti gli allievi di questo Camp
-        const urlAllievi = `${config.url}/rest/v1/allievi?camp=eq.${camp}&select=*`;
-        const resAllievi = await fetch(urlAllievi, {
+        // Utilizziamo il Resource Embedding di PostgREST per scaricare allievi e presenze filtrate per data in un'unica chiamata HTTP
+        const url = `${config.url}/rest/v1/allievi?camp=eq.${camp}&select=*,presenze(*)&presenze.data=eq.${dateStr}`;
+        const response = await fetch(url, {
             method: 'GET',
             headers: this.getHeaders()
         });
         
-        if (!resAllievi.ok) {
-            const errText = await resAllievi.text();
-            throw new Error(`Impossibile scaricare allievi (${resAllievi.status}): ${errText}`);
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Impossibile scaricare allievi e presenze (${response.status}): ${errText}`);
         }
-        const allievi = await resAllievi.json();
+        const allievi = await response.json();
 
-        // 2. Scarica i record di presenza per questo camp e data
-        const urlPresenze = `${config.url}/rest/v1/presenze?camp=eq.${camp}&data=eq.${dateStr}&select=*`;
-        const resPresenze = await fetch(urlPresenze, {
-            method: 'GET',
-            headers: this.getHeaders()
-        });
-        
-        if (!resPresenze.ok) {
-            const errText = await resPresenze.text();
-            throw new Error(`Impossibile scaricare presenze (${resPresenze.status}): ${errText}`);
-        }
-        const presenze = await resPresenze.json();
-
-        // 3. Fai il Merge dei dati in memoria
+        // Mappa i dati uniti direttamente dal database
         return allievi.map(allievo => {
-            const recordPresenza = presenze.find(p => p.allievo_id === allievo.id);
+            // Poiché presenze.data=eq.dateStr filtra le presenze nidificate per la data selezionata,
+            // l'array allievo.presenze conterrà al massimo 1 elemento (vincolo UNIQUE su allievo_id e data)
+            const recordPresenza = allievo.presenze && allievo.presenze.length > 0 ? allievo.presenze[0] : null;
             return {
                 id: allievo.id,
                 nome: allievo.nome,
