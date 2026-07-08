@@ -98,10 +98,16 @@
 
                 <!-- SEARCH & FILTER BAR -->
                 <div class="search-filter-section">
-                    <div class="search-box">
-                        <i data-lucide="search"></i>
-                        <input type="text" id="search-input" placeholder="Cerca allievo per nome...">
-                        <button id="clear-search-btn" class="hidden"><i data-lucide="x"></i></button>
+                    <div class="search-row">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="search-input" placeholder="Cerca allievo per nome...">
+                            <button id="clear-search-btn" class="hidden"><i data-lucide="x"></i></button>
+                        </div>
+                        <button id="btn-add-student" class="btn btn-primary btn-add-student" title="Aggiungi Nuovo Allievo">
+                            <i data-lucide="plus"></i>
+                            <span>Nuovo</span>
+                        </button>
                     </div>
                     
                     <div class="filter-pills-container">
@@ -308,6 +314,44 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary-outline close-modal-btn">Annulla</button>
                     <button type="submit" class="btn btn-primary">Aggiungi Attività</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: GESTIONE ALLIEVO (INSERIMENTO / MODIFICA) -->
+    <div id="student-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="student-modal-title">Aggiungi Allievo</h3>
+                <button class="close-modal-btn"><i data-lucide="x"></i></button>
+            </div>
+            <form id="student-form">
+                <div class="modal-body">
+                    <input type="hidden" id="student-modal-id">
+                    
+                    <div class="form-group">
+                        <label for="student-modal-name">Nome</label>
+                        <input type="text" id="student-modal-name" required placeholder="Es. Sofia">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="student-modal-surname">Cognome</label>
+                        <input type="text" id="student-modal-surname" required placeholder="Es. Rossi">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="student-modal-category">Categoria</label>
+                        <select id="student-modal-category" required>
+                            <option value="baby">Baby</option>
+                            <option value="bambino">Bambino</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btn-delete-student" class="btn btn-danger-outline" style="margin-right: auto; display: none;">Elimina Allievo</button>
+                    <button type="button" class="btn btn-secondary-outline close-modal-btn">Annulla</button>
+                    <button type="submit" id="btn-save-student" class="btn btn-primary">Salva</button>
                 </div>
             </form>
         </div>

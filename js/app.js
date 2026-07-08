@@ -194,6 +194,7 @@ function registerEventListeners() {
             medicalModal.classList.add('hidden');
             timeEditModal.classList.add('hidden');
             document.getElementById('activity-modal').classList.add('hidden');
+            document.getElementById('student-modal').classList.add('hidden');
         });
     });
 
@@ -436,6 +437,107 @@ function registerEventListeners() {
             }
         });
     });
+
+    // 10. Gestione Modal Inserimento/Modifica Allievo
+    const studentModal = document.getElementById('student-modal');
+    const btnAddStudent = document.getElementById('btn-add-student');
+    if (btnAddStudent) {
+        btnAddStudent.addEventListener('click', () => {
+            document.getElementById('student-modal-title').innerText = "Aggiungi Allievo";
+            document.getElementById('student-modal-id').value = '';
+            document.getElementById('student-modal-name').value = '';
+            document.getElementById('student-modal-surname').value = '';
+            document.getElementById('student-modal-category').value = 'baby';
+            
+            // Nasconde il pulsante di eliminazione
+            document.getElementById('btn-delete-student').style.display = 'none';
+            
+            studentModal.classList.remove('hidden');
+        });
+    }
+
+    const studentForm = document.getElementById('student-form');
+    if (studentForm) {
+        studentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const studentId = document.getElementById('student-modal-id').value;
+            const nomeVal = document.getElementById('student-modal-name').value.trim();
+            const cognomeVal = document.getElementById('student-modal-surname').value.trim();
+            const categoriaVal = document.getElementById('student-modal-category').value;
+            
+            const studentData = {
+                nome: nomeVal,
+                cognome: cognomeVal,
+                categoria: categoriaVal
+            };
+            
+            try {
+                if (studentId) {
+                    // MODIFICA
+                    await window.CampAPI.updateStudentInfo(studentId, studentData);
+                    
+                    // Aggiorna lo stato locale
+                    const localStudent = AppState.students.find(s => s.id === studentId);
+                    if (localStudent) {
+                        localStudent.nome = nomeVal;
+                        localStudent.cognome = cognomeVal;
+                        localStudent.categoria = categoriaVal;
+                    }
+                } else {
+                    // INSERIMENTO
+                    const newStudent = await window.CampAPI.addStudent(AppState.currentCamp, studentData);
+                    
+                    // Inizializza lo stato per l'allievo locale appena inserito
+                    AppState.students.push({
+                        id: newStudent.id,
+                        nome: newStudent.nome,
+                        cognome: newStudent.cognome,
+                        categoria: newStudent.categoria,
+                        intolleranze: '',
+                        patologie: '',
+                        presente: null,
+                        preCamp: false,
+                        postCamp: false,
+                        entrataAnticipata: '',
+                        uscitaAnticipata: ''
+                    });
+                }
+                
+                studentModal.classList.add('hidden');
+                renderStudentsList();
+                updateStatsSummary();
+            } catch (err) {
+                alert("Errore durante il salvataggio dell'allievo su Supabase!\n\nDettaglio errore: " + err.message);
+            }
+        });
+    }
+
+    const btnDeleteStudent = document.getElementById('btn-delete-student');
+    if (btnDeleteStudent) {
+        btnDeleteStudent.addEventListener('click', async () => {
+            const studentId = document.getElementById('student-modal-id').value;
+            if (!studentId) return;
+            
+            const student = AppState.students.find(s => s.id === studentId);
+            const studentName = student ? `${student.nome} ${student.cognome}` : 'questo allievo';
+            
+            if (confirm(`Sei sicuro di voler eliminare definitivamente ${studentName}? Tutti i suoi dati di presenza verranno rimossi.`)) {
+                try {
+                    await window.CampAPI.deleteStudent(studentId);
+                    
+                    // Rimuove lo studente dallo stato locale
+                    AppState.students = AppState.students.filter(s => s.id !== studentId);
+                    
+                    studentModal.classList.add('hidden');
+                    renderStudentsList();
+                    updateStatsSummary();
+                } catch (err) {
+                    alert("Errore durante l'eliminazione dell'allievo da Supabase!\n\nDettaglio errore: " + err.message);
+                }
+            }
+        });
+    }
 }
 
 // ==========================================================================
@@ -597,7 +699,12 @@ function renderStudentsList() {
         card.innerHTML = `
             <div class="student-card-header">
                 <div class="student-info-main">
-                    <span class="student-name">${student.nome} ${student.cognome}</span>
+                    <div class="student-name-row">
+                        <span class="student-name">${student.nome} ${student.cognome}</span>
+                        <button class="btn-edit-student" data-student-id="${student.id}" title="Modifica allievo">
+                            <i data-lucide="edit-3"></i>
+                        </button>
+                    </div>
                     <div class="badges-row">
                         <span class="badge-category ${student.categoria}">${student.categoria}</span>
                     </div>
@@ -812,6 +919,29 @@ function bindStudentCardEvents() {
                 document.getElementById('input-patologie').value = student.patologie || '';
                 
                 document.getElementById('medical-modal').classList.remove('hidden');
+            }
+        });
+    });
+
+    // Apertura Modale Gestione Allievo per modifica
+    const editStudentBtns = document.querySelectorAll('.btn-edit-student');
+    editStudentBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const studentId = e.currentTarget.getAttribute('data-student-id');
+            const student = AppState.students.find(s => s.id === studentId);
+            
+            if (student) {
+                document.getElementById('student-modal-title').innerText = "Modifica Allievo";
+                document.getElementById('student-modal-id').value = student.id;
+                document.getElementById('student-modal-name').value = student.nome;
+                document.getElementById('student-modal-surname').value = student.cognome;
+                document.getElementById('student-modal-category').value = student.categoria;
+                
+                // Mostra il pulsante di eliminazione
+                document.getElementById('btn-delete-student').style.display = 'inline-flex';
+                
+                document.getElementById('student-modal').classList.remove('hidden');
             }
         });
     });

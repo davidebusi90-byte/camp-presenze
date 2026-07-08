@@ -194,6 +194,86 @@ const CampAPI = {
         return true;
     },
 
+    // Aggiunge un nuovo allievo su Supabase
+    async addStudent(camp, studentData) {
+        if (!this.isOnlineMode()) {
+            throw new Error('Supabase non configurato. Inserisci URL e Anon Key nelle Impostazioni.');
+        }
+
+        const config = this.getSupabaseConfig();
+        const url = `${config.url}/rest/v1/allievi`;
+        const headers = this.getHeaders();
+        headers['Prefer'] = 'return=representation';
+
+        const payload = {
+            camp: camp,
+            nome: studentData.nome,
+            cognome: studentData.cognome,
+            categoria: studentData.categoria,
+            intolleranze: '',
+            patologie: ''
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Errore inserimento allievo Supabase (${response.status}): ${errText}`);
+        }
+        const inserted = await response.json();
+        return inserted[0];
+    },
+
+    // Aggiorna le informazioni anagrafiche di un allievo
+    async updateStudentInfo(studentId, studentData) {
+        if (!this.isOnlineMode()) {
+            throw new Error('Supabase non configurato. Inserisci URL e Anon Key nelle Impostazioni.');
+        }
+
+        const config = this.getSupabaseConfig();
+        const url = `${config.url}/rest/v1/allievi?id=eq.${studentId}`;
+        const response = await fetch(url, {
+            method: 'PATCH',
+            headers: this.getHeaders(),
+            body: JSON.stringify({ 
+                nome: studentData.nome,
+                cognome: studentData.cognome,
+                categoria: studentData.categoria
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Errore aggiornamento allievo Supabase (${response.status}): ${errText}`);
+        }
+        return true;
+    },
+
+    // Rimuove un allievo da Supabase
+    async deleteStudent(studentId) {
+        if (!this.isOnlineMode()) {
+            throw new Error('Supabase non configurato. Inserisci URL e Anon Key nelle Impostazioni.');
+        }
+
+        const config = this.getSupabaseConfig();
+        const url = `${config.url}/rest/v1/allievi?id=eq.${studentId}`;
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Errore cancellazione allievo Supabase (${response.status}): ${errText}`);
+        }
+        return true;
+    },
+
+
     // Ottiene le attività dal calendario Supabase
     async fetchActivities(camp) {
         if (!this.isOnlineMode()) {

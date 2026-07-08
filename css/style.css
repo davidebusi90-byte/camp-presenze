@@ -519,6 +519,18 @@ input, button, select, textarea {
     display: none;
 }
 
+.search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+}
+
+.btn-add-student {
+    flex-shrink: 0;
+    height: 42px;
+}
+
 /* Pillole Filtri */
 .filter-pills-container {
     display: flex;
@@ -678,11 +690,41 @@ input, button, select, textarea {
     padding-right: 8px;
 }
 
+.student-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
 .student-name {
     font-size: 16px;
     font-weight: 700;
     color: var(--text-main);
     word-break: break-word;
+}
+
+.btn-edit-student {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.btn-edit-student:hover {
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.btn-edit-student i {
+    width: 14px;
+    height: 14px;
 }
 
 .badges-row {
