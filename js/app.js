@@ -47,7 +47,7 @@ async function initApp() {
     setInterval(async () => {
         if (AppState.currentTab === 'panel-presenze' && window.CampAPI.isOnlineMode()) {
             console.log('Auto-refresh delle presenze da Supabase...');
-            await loadStudentsData();
+            await loadStudentsData(true);
         }
     }, 30000);
 
@@ -393,10 +393,13 @@ function registerEventListeners() {
             target: target
         };
 
-        await window.CampAPI.saveActivity(AppState.currentCamp, newAct);
-        
-        activityModal.classList.add('hidden');
-        await loadActivitiesData();
+        try {
+            await window.CampAPI.saveActivity(AppState.currentCamp, newAct);
+            activityModal.classList.add('hidden');
+            await loadActivitiesData();
+        } catch (err) {
+            alert("Errore durante il salvataggio dell'attività su Supabase!\n\nDettaglio errore: " + err.message);
+        }
     });
 
     // 9. Filtro allievi al click sui box di riepilogo
@@ -470,14 +473,17 @@ async function loadCurrentTabContent() {
 }
 
 // Caricamento presenze per la data selezionata
-async function loadStudentsData() {
+async function loadStudentsData(silent = false) {
     const listContainer = document.getElementById('students-list');
-    listContainer.innerHTML = `
-        <div class="loading-state">
-            <div class="spinner"></div>
-            <p>Caricamento allievi in corso...</p>
-        </div>
-    `;
+    
+    if (!silent) {
+        listContainer.innerHTML = `
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Caricamento allievi in corso...</p>
+            </div>
+        `;
+    }
 
     // Aggiorna l'interfaccia della data
     updateDateDisplay();
@@ -488,13 +494,15 @@ async function loadStudentsData() {
         renderStudentsList();
         updateStatsSummary();
     } catch (err) {
-        listContainer.innerHTML = `
-            <div class="empty-state">
-                <i data-lucide="alert-triangle"></i>
-                <p>Si è verificato un errore nel caricamento dei dati.</p>
-            </div>
-        `;
-        lucide.createIcons();
+        if (!silent) {
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="alert-triangle"></i>
+                    <p>Si è verificato un errore nel caricamento dei dati.</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
     }
 }
 
@@ -850,8 +858,12 @@ function renderActivitiesList() {
         btn.addEventListener('click', async (e) => {
             if (confirm('Sei sicuro di voler eliminare questa attività?')) {
                 const actId = e.currentTarget.getAttribute('data-act-id');
-                await window.CampAPI.deleteActivity(AppState.currentCamp, actId);
-                await loadActivitiesData();
+                try {
+                    await window.CampAPI.deleteActivity(AppState.currentCamp, actId);
+                    await loadActivitiesData();
+                } catch (err) {
+                    alert("Errore durante l'eliminazione dell'attività da Supabase!\n\nDettaglio errore: " + err.message);
+                }
             }
         });
     });

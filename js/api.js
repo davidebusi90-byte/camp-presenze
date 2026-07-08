@@ -17,13 +17,14 @@ const CampAPI = {
     // Configura e ottiene i parametri Supabase
     getSupabaseConfig() {
         return {
-            url: DEFAULTS.SUPABASE_URL,
-            key: DEFAULTS.SUPABASE_KEY
+            url: localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || DEFAULTS.SUPABASE_URL,
+            key: localStorage.getItem(STORAGE_KEYS.SUPABASE_KEY) || DEFAULTS.SUPABASE_KEY
         };
     },
 
     setSupabaseConfig(url, key) {
-        // Rimosso dall'interfaccia - la configurazione è automatica
+        localStorage.setItem(STORAGE_KEYS.SUPABASE_URL, url);
+        localStorage.setItem(STORAGE_KEYS.SUPABASE_KEY, key);
     },
 
     // Rileva se l'app è collegata a Supabase
@@ -134,6 +135,23 @@ const CampAPI = {
         }
 
         const config = this.getSupabaseConfig();
+
+        // Se l'allievo è in stato Neutro (presente === null) e non ha altri servizi attivi,
+        // rimuoviamo il record dal database in modo che al caricamento successivo rimanga Neutro (grigio)
+        if (studentData.presente === null && !studentData.preCamp && !studentData.postCamp && !studentData.entrataAnticipata && !studentData.uscitaAnticipata) {
+            const deleteUrl = `${config.url}/rest/v1/presenze?allievo_id=eq.${studentData.id}&data=eq.${dateStr}`;
+            const response = await fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: this.getHeaders()
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Errore cancellazione presenza Supabase (${response.status}): ${errText}`);
+            }
+            return true;
+        }
+
         // PostgREST supporta l'UPSERT nativo tramite POST + l'header "Prefer: resolution=merge-duplicates"
         const url = `${config.url}/rest/v1/presenze`;
         const headers = this.getHeaders();
