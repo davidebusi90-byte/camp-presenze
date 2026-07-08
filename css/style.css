@@ -411,15 +411,8 @@ input, button, select, textarea {
     gap: 8px;
 }
 
-.quick-stats .stat-card:nth-child(1),
-.quick-stats .stat-card:nth-child(2),
-.quick-stats .stat-card:nth-child(3) {
+.quick-stats .stat-card {
     grid-column: span 2;
-}
-
-.quick-stats .stat-card:nth-child(4),
-.quick-stats .stat-card:nth-child(5) {
-    grid-column: span 3;
 }
 
 .stat-card {
