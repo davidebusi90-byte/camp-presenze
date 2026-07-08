@@ -642,6 +642,8 @@ function renderStudentsList() {
         filteredStudents = filteredStudents.filter(s => s.presente === true);
     } else if (AppState.activeFilter === 'absent') {
         filteredStudents = filteredStudents.filter(s => s.presente === false);
+    } else if (AppState.activeFilter === 'unmarked') {
+        filteredStudents = filteredStudents.filter(s => s.presente === null || s.presente === undefined);
     } else if (AppState.activeFilter === 'precamp') {
         filteredStudents = filteredStudents.filter(s => s.preCamp === true);
     } else if (AppState.activeFilter === 'postcamp') {
@@ -1075,12 +1077,15 @@ function updateStatsSummary() {
     
     const postCampTotal = AppState.students.filter(s => s.postCamp === true).length;
     const postCampActive = AppState.students.filter(s => s.presente === true && s.postCamp === true).length;
+    
+    const unmarkedTotal = AppState.students.filter(s => s.presente === null || s.presente === undefined).length;
 
     document.getElementById('stat-total-present').innerText = `${present}/${total}`;
     document.getElementById('stat-baby-present').innerText = `${babyPresent}/${babyTotal}`;
     document.getElementById('stat-kids-present').innerText = `${kidsPresent}/${kidsTotal}`;
     document.getElementById('stat-pre-present').innerText = preCampActive;
     document.getElementById('stat-post-present').innerText = postCampActive;
+    document.getElementById('stat-unmarked-present').innerText = unmarkedTotal;
 }
 
 
