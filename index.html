@@ -120,6 +120,7 @@
                         <button class="filter-pill active" data-filter="all">Tutti</button>
                         <button class="filter-pill" data-filter="baby">Baby</button>
                         <button class="filter-pill" data-filter="bambino">Bambini</button>
+                        <button class="filter-pill" data-filter="special">Special Camp</button>
                         <button class="filter-pill" data-filter="present">Presenti</button>
                         <button class="filter-pill" data-filter="absent">Assenti</button>
                         <button class="filter-pill" data-filter="precamp">Pre-Camp</button>
@@ -131,12 +132,20 @@
 
                 <!-- ALLIEVI LIST -->
                 <div class="students-list-wrapper">
-                    <div id="students-list" class="students-list">
+                    <!-- Sezione Allievi Sincronizzati -->
+                    <div class="students-section-title" id="title-section-sync" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: none;">Allievi da Sincronizzazione</div>
+                    <div id="students-list" class="students-list" style="margin-bottom: 24px;">
                         <!-- Caricato dinamicamente via JS -->
                         <div class="loading-state">
                             <div class="spinner"></div>
                             <p>Caricamento allievi...</p>
                         </div>
+                    </div>
+
+                    <!-- Sezione Allievi Manuali -->
+                    <div class="students-section-title" id="title-section-manual" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: none;">Allievi Inseriti Manualmente</div>
+                    <div id="students-list-manual" class="students-list">
+                        <!-- Caricato dinamicamente via JS -->
                     </div>
                 </div>
             </section>
@@ -186,6 +195,25 @@
                     <div class="form-group" style="margin-top: 12px;">
                         <label for="lockers-low-input">Armadietti Bassi (Baby)</label>
                         <textarea id="lockers-low-input" rows="2" placeholder="Es. 1, 2, 3, 4, 5" style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="lockers-view-turn">Visualizza Turno / Settimana da calcolare</label>
+                        <select id="lockers-view-turn" style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: inherit; font-size: 14px; box-sizing: border-box; background: white; color: var(--text-main);">
+                            <option value="1" selected>Turno 1</option>
+                            <option value="2">Turno 2</option>
+                            <option value="3">Turno 3</option>
+                            <option value="4">Turno 4</option>
+                            <option value="5">Turno 5</option>
+                            <option value="6">Turno 6</option>
+                            <option value="7">Turno 7</option>
+                            <option value="8">Turno 8</option>
+                            <option value="9">Turno 9</option>
+                            <option value="10">Turno 10</option>
+                            <option value="11">Turno 11</option>
+                            <option value="12">Turno 12</option>
+                            <option value="13">Turno 13</option>
+                        </select>
                     </div>
 
                     <div class="settings-actions" style="margin-top: 12px;">
@@ -276,31 +304,107 @@
                     </div>
                 </div>
 
-                <div class="settings-card" style="display: none;">
-                    <h3><i data-lucide="database"></i> Configurazione Supabase</h3>
-                    <p class="settings-desc">Inserisci i parametri di connessione del tuo progetto Supabase per sincronizzare le presenze e le attività in cloud.</p>
-                    
-                    <div class="form-group">
-                        <label for="settings-supabase-url">Supabase Project URL</label>
-                        <input type="url" id="settings-supabase-url" placeholder="https://xyz.supabase.co" value="">
+                <!-- Configurazione Supabase rimossa per motivi di usabilità e sicurezza -->
+
+                <!-- IMPORTA DA API ESTERNA -->
+                <div class="settings-card" id="import-api-card">
+                    <h3><i data-lucide="download-cloud"></i> Importa Allievi da API Esterna</h3>
+                    <p class="settings-desc">Incolla qui il JSON ricevuto dall'API del tecnico (il campo <code style="font-size:11px;background:rgba(255,255,255,0.06);padding:2px 5px;border-radius:4px;">allievi</code>). Il sistema importerà o aggiornerà gli allievi su Supabase senza cancellare i dati già presenti.</p>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="import-camp-select">Camp di destinazione (se non rilevabile dal JSON)</label>
+                        <select id="import-camp-select">
+                            <option value="summer">Summer Camp</option>
+                            <option value="spring">Spring Camp</option>
+                            <option value="winter">Winter Camp</option>
+                        </select>
                     </div>
 
-                    <div class="form-group" style="margin-top: 8px;">
-                        <label for="settings-supabase-key">Supabase Anon Key</label>
-                        <input type="text" id="settings-supabase-key" placeholder="Incolla qui la tua anon public key..." value="">
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="import-json-textarea">JSON allievi (array)</label>
+                        <textarea id="import-json-textarea" rows="8" placeholder='Incolla qui il JSON, ad esempio:
+[
+  {
+    "id_allievo": "3845",
+    "cognome": "AFFRONTI",
+    "nome": "ALESSIA",
+    "data_nascita": "2014-12-29",
+    ...
+  }
+]' style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; outline: none; font-family: monospace; font-size: 12px; resize: vertical; box-sizing: border-box; background: rgba(0,0,0,0.15); color: var(--text-main);"></textarea>
                     </div>
 
-                    <div class="settings-actions">
-                        <button id="btn-test-api" class="btn btn-secondary">
-                            <i data-lucide="link"></i> Test Connessione
-                        </button>
-                        <button id="btn-save-settings" class="btn btn-primary">
-                            <i data-lucide="save"></i> Salva
+                    <div id="import-progress-bar-wrapper" style="display:none; margin-top: 12px;">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
+                            <span id="import-progress-label">Importazione in corso...</span>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.08); border-radius: 99px; height: 8px; overflow: hidden;">
+                            <div id="import-progress-fill" style="height: 100%; width: 0%; background: var(--primary); border-radius: 99px; transition: width 0.2s ease;"></div>
+                        </div>
+                    </div>
+
+                    <div id="import-result-msg" class="test-result-message" style="margin-top: 10px;"></div>
+
+                    <div class="settings-actions" style="margin-top: 12px;">
+                        <button id="btn-import-external-api" class="btn btn-primary" style="width: 100%;">
+                            <i data-lucide="upload-cloud"></i> Avvia Importazione
                         </button>
                     </div>
-                    <div id="api-test-result" class="test-result-message"></div>
+                </div>
+
+            </section>
+
+            <!-- PANEL: STATISTICHE (STORICO) -->
+            <section id="panel-statistiche" class="app-panel">
+                <div class="panel-header">
+                    <h2>Statistiche e Storico</h2>
+                </div>
+
+                <div class="date-navigator" style="margin-bottom: 20px;">
+                    <button id="btn-prev-history-date" class="date-nav-btn">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <div class="date-display-container">
+                        <i data-lucide="calendar"></i>
+                        <span id="history-date-display">Seleziona data</span>
+                        <input type="date" id="history-date-picker" class="hidden-date-picker">
+                    </div>
+                    <button id="btn-next-history-date" class="date-nav-btn">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+                
+                <div class="settings-card" id="history-stats-card" style="margin-bottom: 20px;">
+                    <h3><i data-lucide="bar-chart-2"></i> Riepilogo Giornaliero</h3>
+                    <div class="quick-stats" id="history-stats" style="grid-template-columns: repeat(3, 1fr); margin-top: 15px;">
+                        <div class="stat-card">
+                            <span class="stat-value" id="history-stat-present">0</span>
+                            <span class="stat-label">Presenti</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="history-stat-absent">0</span>
+                            <span class="stat-label">Assenti</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="history-stat-precamp">0</span>
+                            <span class="stat-label">Pre-Camp</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card" id="history-details-card">
+                    <h3><i data-lucide="clipboard-list"></i> Dettaglio Allievi Archiviati</h3>
+                    <p class="settings-desc">Elenco degli allievi presenti nell'archivio storico di questa giornata.</p>
+                    <div id="history-students-list" class="students-list" style="margin-top: 15px;">
+                        <!-- Caricato dinamicamente via JS -->
+                        <div class="empty-state">
+                            <i data-lucide="inbox"></i>
+                            <p>Seleziona una data per visualizzare lo storico.</p>
+                        </div>
+                    </div>
                 </div>
             </section>
+
         </main>
 
         <!-- BOTTOM NAVIGATION BAR (Ottimizzata per mobile) -->
@@ -316,6 +420,10 @@
             <button class="nav-item" data-target="panel-armadietti">
                 <i data-lucide="archive"></i>
                 <span>Armadietti</span>
+            </button>
+            <button class="nav-item" data-target="panel-statistiche">
+                <i data-lucide="bar-chart-2"></i>
+                <span>Storico</span>
             </button>
             <button class="nav-item" data-target="panel-impostazioni">
                 <i data-lucide="settings"></i>
@@ -460,7 +568,27 @@
                         <select id="student-modal-category" required>
                             <option value="baby">Baby</option>
                             <option value="bambino">Bambino</option>
+                            <option value="special">Special Camp</option>
                         </select>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label>Turni di Partecipazione (Settimane 1-13)</label>
+                        <div class="turns-checkboxes-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 6px;">
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="1" checked> 1</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="2"> 2</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="3"> 3</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="4"> 4</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="5"> 5</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="6"> 6</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="7"> 7</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="8"> 8</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="9"> 9</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="10"> 10</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="11"> 11</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="12"> 12</label>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><input type="checkbox" class="turn-checkbox" value="13"> 13</label>
+                        </div>
                     </div>
 
                     <div class="form-group" style="margin-top: 12px;">

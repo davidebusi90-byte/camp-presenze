@@ -14,10 +14,12 @@ DROP TABLE IF EXISTS allievi;
 -- 1. TABELLA ALLIEVI (Anagrafica Centrale degli iscritti)
 CREATE TABLE allievi (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    external_id TEXT DEFAULT '',           -- ID univoco proveniente dall'API esterna del tecnico (es. id_allievo)
     nome TEXT NOT NULL,
     cognome TEXT NOT NULL,
     categoria TEXT NOT NULL CHECK (categoria IN ('baby', 'bambino')),
     camp TEXT NOT NULL CHECK (camp IN ('summer', 'spring', 'winter')),
+    colore TEXT DEFAULT '',               -- Colore originale ricevuto dall'API esterna (es. "Arancio")
     intolleranze TEXT DEFAULT '',
     patologie TEXT DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -53,6 +55,7 @@ CREATE TABLE attivita (
 
 -- 4. INDICI DI PRESTAZIONE (Per ricerche rapide)
 CREATE INDEX idx_allievi_camp ON allievi(camp);
+CREATE INDEX idx_allievi_external_id ON allievi(external_id);  -- Per lookup rapido durante importazione esterna
 CREATE INDEX idx_presenze_data_camp ON presenze(data, camp);
 CREATE INDEX idx_attivita_camp_giorno ON attivita(camp, giorno);
 

@@ -747,6 +747,11 @@ input, button, select, textarea {
     color: var(--kid-color);
 }
 
+.badge-category.special {
+    background: rgba(139, 92, 246, 0.15);
+    color: rgb(139, 92, 246);
+}
+
 /* Badge di orario speciale (entrata/uscita anticipata) */
 .badge-special-time {
     background: var(--primary-light);

@@ -109,6 +109,11 @@ const CampAPI = {
                 categoria: allievo.categoria,
                 intolleranze: allievo.intolleranze || '',
                 patologie: allievo.patologie || '',
+                turni: allievo.turni || '1',
+                armadietto: allievo.armadietto || '',
+                overrideManual: allievo.override_manual || false,
+                colore: allievo.colore || '',
+                externalId: allievo.external_id || '',
                 // Se c'è un record di presenza, usa i suoi valori, altrimenti imposta i default (null = Neutro)
                 presente: recordPresenza ? recordPresenza.presente : null,
                 preCamp: recordPresenza ? recordPresenza.pre_camp : false,
@@ -199,12 +204,35 @@ const CampAPI = {
     // Aggiunge un nuovo allievo su Supabase
     async addStudent(camp, studentData) {
         if (!this.isOnlineMode()) {
-            throw new Error('Supabase non configurato. Inserisci URL e Anon Key nelle Impostazioni.');
+            throw new Error('Supabase non configurato.');
         }
 
         const config = this.getSupabaseConfig();
-        const url = `${config.url}/rest/v1/allievi`;
         const headers = this.getHeaders();
+
+        // Genera ID manuale consecutivo (0X1, 0X2, ...)
+        let nextManualId = '0X1';
+        try {
+            const selectUrl = `${config.url}/rest/v1/allievi?external_id=like.0X%25&select=external_id`;
+            const selectRes = await fetch(selectUrl, { method: 'GET', headers });
+            if (selectRes.ok) {
+                const manualStudents = await selectRes.json();
+                let maxNum = 0;
+                if (manualStudents && manualStudents.length > 0) {
+                    manualStudents.forEach(s => {
+                        const num = parseInt(s.external_id.replace('0X', ''), 10);
+                        if (!isNaN(num) && num > maxNum) {
+                            maxNum = num;
+                        }
+                    });
+                }
+                nextManualId = `0X${maxNum + 1}`;
+            }
+        } catch (e) {
+            console.error('Errore nel calcolo del prefisso 0X consecutivo:', e);
+        }
+
+        const url = `${config.url}/rest/v1/allievi`;
         headers['Prefer'] = 'return=representation';
 
         const payload = {
@@ -213,7 +241,11 @@ const CampAPI = {
             cognome: studentData.cognome,
             categoria: studentData.categoria,
             intolleranze: studentData.intolleranze || '',
-            patologie: studentData.patologie || ''
+            patologie: studentData.patologie || '',
+            external_id: nextManualId,
+            turni: studentData.turni || '1',
+            armadietto: studentData.armadietto || '',
+            override_manual: true // È stato creato manualmente
         };
 
         const response = await fetch(url, {
@@ -233,7 +265,7 @@ const CampAPI = {
     // Aggiorna le informazioni anagrafiche di un allievo
     async updateStudentInfo(studentId, studentData) {
         if (!this.isOnlineMode()) {
-            throw new Error('Supabase non configurato. Inserisci URL e Anon Key nelle Impostazioni.');
+            throw new Error('Supabase non configurato.');
         }
 
         const config = this.getSupabaseConfig();
@@ -246,7 +278,10 @@ const CampAPI = {
                 cognome: studentData.cognome,
                 categoria: studentData.categoria,
                 intolleranze: studentData.intolleranze || '',
-                patologie: studentData.patologie || ''
+                patologie: studentData.patologie || '',
+                turni: studentData.turni || '1',
+                armadietto: studentData.armadietto || '',
+                override_manual: true // Imposta a TRUE quando l'operatore modifica i dati
             })
         });
 
@@ -389,6 +424,240 @@ const CampAPI = {
     logout() {
         localStorage.removeItem('camp_user_token');
         localStorage.removeItem('camp_user_email');
+    },
+
+    // ==========================================================================
+    // IMPORTAZIONE DA API ESTERNA (formato tecnico fornitore)
+    // ==========================================================================
+
+    /**
+     * Estrae l'anno di nascita a 4 cifre da diversi formati (YYYY-MM-DD o DD/MM/YYYY)
+     */
+    _getBirthYear(dateStr) {
+        if (!dateStr) return null;
+        if (dateStr.includes('-')) {
+            const parts = dateStr.split('-');
+            if (parts[0].length === 4) return parseInt(parts[0], 10);
+            if (parts[2].length === 4) return parseInt(parts[2], 10);
+        }
+        if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts[2].length === 4) return parseInt(parts[2], 10);
+            if (parts[0].length === 4) return parseInt(parts[0], 10);
+        }
+        const match = dateStr.match(/\b\d{4}\b/);
+        return match ? parseInt(match[0], 10) : null;
+    },
+
+    /**
+     * Determina la categoria (baby/bambino) dall'allievo esterno.
+     * Baby: 3-5 anni. Bambini: 6-18 anni.
+     */
+    _determinaCategoria(allievoEsterno) {
+        if (allievoEsterno.data_nascita) {
+            const annoCamp = parseInt(allievoEsterno.annualita || new Date().getFullYear(), 10);
+            const annoNascita = this._getBirthYear(allievoEsterno.data_nascita);
+            if (annoNascita) {
+                const eta = annoCamp - annoNascita;
+                return (eta >= 3 && eta <= 5) ? 'baby' : 'bambino';
+            }
+        }
+        return 'bambino';
+    },
+
+    /**
+     * Determina il camp (summer/spring/winter) dal campo rd_camp dell'allievo esterno.
+     */
+    _determinaCamp(allievoEsterno, campTarget) {
+        const rdCamp = (allievoEsterno.rd_camp || '').toLowerCase();
+        if (rdCamp.includes('summer') || rdCamp.includes('estiv')) return 'summer';
+        if (rdCamp.includes('spring') || rdCamp.includes('primaver')) return 'spring';
+        if (rdCamp.includes('winter') || rdCamp.includes('inver')) return 'winter';
+        return campTarget; // Usa il camp selezionato dall'utente nell'interfaccia
+    },
+
+    /**
+     * Importa un array di allievi dal formato API esterna al database Supabase.
+     */
+    async importFromExternalAPI(allievi, campTarget, onProgress) {
+        if (!this.isOnlineMode()) {
+            throw new Error('Supabase non configurato.');
+        }
+
+        const config = this.getSupabaseConfig();
+        const headers = this.getHeaders();
+
+        // 1. Salva l'importazione come file storico nel database (7 file a settimana)
+        try {
+            const importFileName = `import_${campTarget}_${new Date().toISOString().replace(/T/, '_').substring(0, 19).replace(/:/g, '-')}.json`;
+            const insertImportUrl = `${config.url}/rest/v1/importazioni`;
+            await fetch(insertImportUrl, {
+                method: 'POST',
+                headers: { ...headers, 'Prefer': 'return=minimal' },
+                body: JSON.stringify({
+                    nome_file: importFileName,
+                    camp: campTarget,
+                    payload: allievi
+                })
+            });
+        } catch (importErr) {
+            console.error("Errore nel salvataggio storico file importazione:", importErr);
+        }
+
+        let importati = 0;
+        let aggiornati = 0;
+        const dettagliErrori = [];
+
+        for (let i = 0; i < allievi.length; i++) {
+            const a = allievi[i];
+            const nomeCompleto = `${a.nome || ''} ${a.cognome || ''}`.trim();
+
+            if (onProgress) onProgress(i + 1, allievi.length, nomeCompleto);
+
+            try {
+                const camp = this._determinaCamp(a, campTarget);
+                const categoria = this._determinaCategoria(a);
+
+                // Costruisce le note sanitarie dal campo segnalazioni_sanitarie
+                const segnalazioni = (a.segnalazioni_sanitarie || '').trim();
+                const patologie = (segnalazioni.toUpperCase() === 'NESSUNA' || segnalazioni === '') ? '' : segnalazioni;
+
+                // Dati dell'allievo da salvare su Supabase
+                const payload = {
+                    external_id: String(a.id_allievo || a.Cod || '').trim(),
+                    nome: (a.nome || '').trim(),
+                    cognome: (a.cognome || '').trim(),
+                    categoria: categoria,
+                    camp: camp,
+                    colore: (a.colore || '').trim(),  // Salvato così com'è per uso futuro
+                    intolleranze: '',    // Non presente nel formato esterno — lasciato vuoto
+                    patologie: patologie
+                };
+
+                // Prima controlla se esiste un allievo manuale (external_id inizia con '0X') con lo stesso nome e cognome
+                let existing = [];
+                const checkManualUrl = `${config.url}/rest/v1/allievi?nome=eq.${encodeURIComponent(payload.nome)}&cognome=eq.${encodeURIComponent(payload.cognome)}&external_id=like.0X%25&select=id,external_id`;
+                const checkManualRes = await fetch(checkManualUrl, { method: 'GET', headers });
+                
+                if (checkManualRes.ok) {
+                    const existingManual = await checkManualRes.json();
+                    if (existingManual && existingManual.length > 0) {
+                        // Trovato allievo manuale con lo stesso nome/cognome. Chiediamo all'operatore se è la stessa persona
+                        const isSamePerson = confirm(
+                            `Attenzione: L'allievo in importazione "${payload.nome} ${payload.cognome}" coincide con l'allievo inserito manualmente "${payload.nome} ${payload.cognome}" (ID: ${existingManual[0].external_id})?\n\nClicca OK per collegare i record e assegnare l'ID ufficiale, o Annulla per importarli come allievi separati.`
+                        );
+                        if (isSamePerson) {
+                            // Fonde i due allievi aggiornando l'ID dell'allievo manuale con l'ID ufficiale in arrivo
+                            const mergeUrl = `${config.url}/rest/v1/allievi?id=eq.${existingManual[0].id}`;
+                            const mergeRes = await fetch(mergeUrl, {
+                                method: 'PATCH',
+                                headers,
+                                body: JSON.stringify({
+                                    external_id: payload.external_id,
+                                    override_manual: true // Mantiene l'override manuale attivo
+                                })
+                            });
+                            if (!mergeRes.ok) throw new Error(`Fusione record fallita: ${await mergeRes.text()}`);
+                            
+                            // Lo marchiamo come esistente con override_manual attivo per l'aggiornamento
+                            existing = [{ id: existingManual[0].id, override_manual: true }];
+                        }
+                    }
+                }
+
+                // Se non c'è stata fusione, cerca l'allievo esistente tramite il suo external_id ufficiale
+                if (existing.length === 0 && payload.external_id && !payload.external_id.startsWith('0X')) {
+                    const checkUrl = `${config.url}/rest/v1/allievi?external_id=eq.${encodeURIComponent(payload.external_id)}&select=id,override_manual`;
+                    const checkRes = await fetch(checkUrl, { method: 'GET', headers });
+                    if (checkRes.ok) {
+                        existing = await checkRes.json();
+                    }
+                }
+
+                if (existing && existing.length > 0) {
+                    // AGGIORNAMENTO: controlla se c'è l'override manuale attivo
+                    const overrideManual = existing[0].override_manual;
+                    const updatePayload = overrideManual ? {
+                        // Se c'è l'override manuale, non sovrascriviamo nome, cognome e categoria
+                        camp: payload.camp,
+                        colore: payload.colore,
+                        patologie: payload.patologie
+                    } : {
+                        nome: payload.nome,
+                        cognome: payload.cognome,
+                        categoria: payload.categoria,
+                        camp: payload.camp,
+                        colore: payload.colore,
+                        patologie: payload.patologie
+                    };
+
+                    const updateUrl = `${config.url}/rest/v1/allievi?id=eq.${existing[0].id}`;
+                    const updateRes = await fetch(updateUrl, {
+                        method: 'PATCH',
+                        headers,
+                        body: JSON.stringify(updatePayload)
+                    });
+                    if (!updateRes.ok) {
+                        const err = await updateRes.text();
+                        throw new Error(`PATCH fallito (${updateRes.status}): ${err}`);
+                    }
+                    aggiornati++;
+                } else {
+                    // INSERIMENTO: POST nuovo allievo
+                    const insertUrl = `${config.url}/rest/v1/allievi`;
+                    const insertHeaders = { ...headers, 'Prefer': 'return=minimal' };
+                    const insertRes = await fetch(insertUrl, {
+                        method: 'POST',
+                        headers: insertHeaders,
+                        body: JSON.stringify({
+                            ...payload,
+                            turni: '1',
+                            override_manual: false
+                        })
+                    });
+                    if (!insertRes.ok) {
+                        const err = await insertRes.text();
+                        throw new Error(`POST fallito (${insertRes.status}): ${err}`);
+                    }
+                    importati++;
+                }
+            } catch (err) {
+                dettagliErrori.push({ allievo: nomeCompleto, errore: err.message });
+            }
+        }
+
+        return { importati, aggiornati, errori: dettagliErrori.length, dettagliErrori };
+    },
+
+    // ==========================================================================
+    // STORICO GIORNALIERO (Statistiche)
+    // ==========================================================================
+
+    /**
+     * Recupera lo snapshot storico per una data specifica.
+     */
+    async fetchHistory(dateStr) {
+        if (!this.isOnlineMode()) {
+            throw new Error('Supabase non configurato.');
+        }
+
+        const config = this.getSupabaseConfig();
+        const url = `${config.url}/rest/v1/archivio_presenze?data=eq.${dateStr}&select=payload`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Errore caricamento storico (${response.status}): ${errText}`);
+        }
+
+        const data = await response.json();
+        if (data && data.length > 0 && data[0].payload) {
+            return data[0].payload;
+        }
+        return []; // Nessuno storico trovato
     }
 };
 

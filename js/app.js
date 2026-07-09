@@ -12,7 +12,8 @@ const AppState = {
     searchQuery: '',                 // Testo digitato nella barra di ricerca
     activeActivityDay: '1',          // '1' (Lun) .. '5' (Ven)
     students: [],                    // Allievi caricati per la giornata corrente
-    activities: []                   // Attività caricate per il camp corrente
+    activities: [],                  // Attività caricate per il camp corrente
+    historyDate: new Date()          // Data selezionata per lo storico
 };
 
 // MA MAPPATURA DEI GIORNI DELLA SETTIMANA
@@ -165,6 +166,37 @@ function registerEventListeners() {
             await loadStudentsData();
         }
     });
+
+    // 3.b Navigazione Data Storico
+    const historyDateDisplayContainer = document.querySelector('#panel-statistiche .date-display-container');
+    const historyDatePicker = document.getElementById('history-date-picker');
+    
+    if (historyDateDisplayContainer && historyDatePicker) {
+        historyDateDisplayContainer.addEventListener('click', () => {
+            try {
+                historyDatePicker.showPicker();
+            } catch (err) {
+                historyDatePicker.click();
+            }
+        });
+
+        historyDatePicker.addEventListener('change', async (e) => {
+            if (e.target.value) {
+                AppState.historyDate = new Date(e.target.value);
+                await loadHistoryTabContent();
+            }
+        });
+
+        document.getElementById('btn-prev-history-date').addEventListener('click', async () => {
+            AppState.historyDate.setDate(AppState.historyDate.getDate() - 1);
+            await loadHistoryTabContent();
+        });
+
+        document.getElementById('btn-next-history-date').addEventListener('click', async () => {
+            AppState.historyDate.setDate(AppState.historyDate.getDate() + 1);
+            await loadHistoryTabContent();
+        });
+    }
 
     // 4. Ricerca e Filtri
     const searchInput = document.getElementById('search-input');
@@ -464,6 +496,12 @@ function registerEventListeners() {
             document.getElementById('student-modal-intolleranze').value = '';
             document.getElementById('student-modal-patologie').value = '';
             
+            // Resetta checkbox turni (turno 1 attivo di default)
+            const checkboxes = document.querySelectorAll('.turn-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = (cb.value === '1');
+            });
+
             // Nasconde il pulsante di eliminazione
             document.getElementById('btn-delete-student').style.display = 'none';
             
@@ -483,49 +521,83 @@ function registerEventListeners() {
             const intolleranzeVal = document.getElementById('student-modal-intolleranze').value.trim();
             const patologieVal = document.getElementById('student-modal-patologie').value.trim();
             
+            // Estrae turni selezionati dalle checkbox
+            const turnCheckboxes = document.querySelectorAll('.turn-checkbox:checked');
+            const turniArr = Array.from(turnCheckboxes).map(cb => cb.value);
+            const turniVal = turniArr.length > 0 ? turniArr.join(',') : '1';
+
             const studentData = {
                 nome: nomeVal,
                 cognome: cognomeVal,
                 categoria: categoriaVal,
                 intolleranze: intolleranzeVal,
-                patologie: patologieVal
+                patologie: patologieVal,
+                turni: turniVal,
+                armadietto: ''
             };
             
             try {
                 if (studentId) {
                     // MODIFICA
+                    const localStudent = AppState.students.find(s => s.id === studentId);
+                    studentData.armadietto = localStudent ? localStudent.armadietto : '';
+
                     await window.CampAPI.updateStudentInfo(studentId, studentData);
                     
                     // Aggiorna lo stato locale
-                    const localStudent = AppState.students.find(s => s.id === studentId);
                     if (localStudent) {
                         localStudent.nome = nomeVal;
                         localStudent.cognome = cognomeVal;
                         localStudent.categoria = categoriaVal;
                         localStudent.intolleranze = intolleranzeVal;
                         localStudent.patologie = patologieVal;
+                        localStudent.turni = turniVal;
                     }
                 } else {
                     // INSERIMENTO
                     const newStudent = await window.CampAPI.addStudent(AppState.currentCamp, studentData);
                     
                     // Inizializza lo stato per l'allievo locale appena inserito
-                    AppState.students.push({
+                    const localNew = {
                         id: newStudent.id,
                         nome: newStudent.nome,
                         cognome: newStudent.cognome,
                         categoria: newStudent.categoria,
                         intolleranze: newStudent.intolleranze || '',
                         patologie: newStudent.patologie || '',
+                        turni: newStudent.turni || '1',
+                        armadietto: newStudent.armadietto || '',
+                        overrideManual: newStudent.override_manual || false,
+                        colore: newStudent.colore || '',
+                        externalId: newStudent.external_id || '',
                         presente: null,
                         preCamp: false,
                         postCamp: false,
                         entrataAnticipata: '',
                         uscitaAnticipata: ''
-                    });
+                    };
+                    AppState.students.push(localNew);
+
+                    // Aggiunge la presenza per tutta la settimana corrente (Lunedì-Venerdì)
+                    const weekDates = getWeekDates(AppState.currentDate);
+                    for (const dStr of weekDates) {
+                        try {
+                            await window.CampAPI.saveStudentData(AppState.currentCamp, dStr, {
+                                id: newStudent.id,
+                                presente: null,
+                                preCamp: false,
+                                postCamp: false,
+                                entrataAnticipata: '',
+                                uscitaAnticipata: ''
+                            });
+                        } catch (errPres) {
+                            console.error("Errore salvataggio presenza settimanale:", errPres);
+                        }
+                    }
                 }
                 
                 studentModal.classList.add('hidden');
+                await loadStudentsData(true); // Ricarica silenzioso per sincronizzare il DB
                 renderStudentsList();
                 updateStatsSummary();
             } catch (err) {
@@ -635,26 +707,128 @@ function registerEventListeners() {
         });
     }
 
-    const pillLockersKids = document.getElementById('pill-lockers-kids');
-    const pillLockersBaby = document.getElementById('pill-lockers-baby');
-    const lockersKidsPanel = document.getElementById('lockers-kids-panel');
-    const lockersBabyPanel = document.getElementById('lockers-baby-panel');
-
-    if (pillLockersKids && pillLockersBaby) {
-        pillLockersKids.addEventListener('click', () => {
-            pillLockersKids.classList.add('active');
-            pillLockersBaby.classList.remove('active');
-            if (lockersKidsPanel) lockersKidsPanel.style.display = 'block';
-            if (lockersBabyPanel) lockersBabyPanel.style.display = 'none';
-        });
-
-        pillLockersBaby.addEventListener('click', () => {
-            pillLockersBaby.classList.add('active');
-            pillLockersKids.classList.remove('active');
-            if (lockersBabyPanel) lockersBabyPanel.style.display = 'block';
-            if (lockersKidsPanel) lockersKidsPanel.style.display = 'none';
+    const viewTurnSelect = document.getElementById('lockers-view-turn');
+    if (viewTurnSelect) {
+        viewTurnSelect.addEventListener('change', () => {
+            loadLockersTabContent();
         });
     }
+
+    const pillLockersKids = document.getElementById('pill-lockers-kids');
+    const pillLockersBaby = document.getElementById('pill-lockers-baby');\r
+    const lockersKidsPanel = document.getElementById('lockers-kids-panel');\r
+    const lockersBabyPanel = document.getElementById('lockers-baby-panel');\r
+\r
+    if (pillLockersKids && pillLockersBaby) {\r
+        pillLockersKids.addEventListener('click', () => {\r
+            pillLockersKids.classList.add('active');\r
+            pillLockersBaby.classList.remove('active');\r
+            if (lockersKidsPanel) lockersKidsPanel.style.display = 'block';\r
+            if (lockersBabyPanel) lockersBabyPanel.style.display = 'none';\r
+        });\r
+\r
+        pillLockersBaby.addEventListener('click', () => {\r
+            pillLockersBaby.classList.add('active');\r
+            pillLockersKids.classList.remove('active');\r
+            if (lockersBabyPanel) lockersBabyPanel.style.display = 'block';\r
+            if (lockersKidsPanel) lockersKidsPanel.style.display = 'none';\r
+        });\r
+    }\r
+\r
+    // 13. Importazione da API Esterna\r
+    const btnImportExternal = document.getElementById('btn-import-external-api');\r
+    if (btnImportExternal) {\r
+        btnImportExternal.addEventListener('click', async () => {\r
+            const jsonText = (document.getElementById('import-json-textarea').value || '').trim();\r
+            const campTarget = document.getElementById('import-camp-select').value;\r
+            const resultMsg = document.getElementById('import-result-msg');\r
+            const progressWrapper = document.getElementById('import-progress-bar-wrapper');\r
+            const progressFill = document.getElementById('import-progress-fill');\r
+            const progressLabel = document.getElementById('import-progress-label');\r
+\r
+            // Reset UI\r
+            resultMsg.className = 'test-result-message';\r
+            resultMsg.innerText = '';\r
+            progressWrapper.style.display = 'none';\r
+            progressFill.style.width = '0%';\r
+\r
+            if (!jsonText) {\r
+                resultMsg.className = 'test-result-message error';\r
+                resultMsg.innerText = 'Errore: nessun dato JSON inserito.';\r
+                return;\r
+            }\r
+\r
+            // Parse JSON — accetta sia array diretto che oggetto wrapper { "allievi": [...] }\r
+            let allievi;\r
+            try {\r
+                const parsed = JSON.parse(jsonText);\r
+                if (Array.isArray(parsed)) {\r
+                    allievi = parsed;\r
+                } else if (parsed && Array.isArray(parsed.allievi)) {\r
+                    allievi = parsed.allievi;\r
+                } else {\r
+                    throw new Error('Il JSON deve essere un array di allievi oppure un oggetto con chiave "allievi".');\r
+                }\r
+            } catch (parseErr) {\r
+                resultMsg.className = 'test-result-message error';\r
+                resultMsg.innerText = 'Errore nel parsing JSON: ' + parseErr.message;\r
+                return;\r
+            }\r
+\r
+            if (allievi.length === 0) {\r
+                resultMsg.className = 'test-result-message error';\r
+                resultMsg.innerText = 'L\'array è vuoto — nessun allievo da importare.';\r
+                return;\r
+            }\r
+\r
+            // Disabilita il pulsante durante l'importazione\r
+            btnImportExternal.disabled = true;\r
+            btnImportExternal.innerHTML = '<div class="spinner" style="width:16px;height:16px;display:inline-block;margin-right:8px;"></div> Importazione in corso...';\r
+            progressWrapper.style.display = 'block';\r
+\r
+            try {\r
+                const result = await window.CampAPI.importFromExternalAPI(\r
+                    allievi,\r
+                    campTarget,\r
+                    (current, total, nome) => {\r
+                        const pct = Math.round((current / total) * 100);\r
+                        progressFill.style.width = pct + '%';\r
+                        progressLabel.innerText = `${current}/${total} — ${nome}`;\r
+                    }\r
+                );\r
+\r
+                progressFill.style.width = '100%';\r
+                progressLabel.innerText = 'Completato!';\r
+\r
+                // Mostra riepilogo\r
+                let summaryHtml = `✅ Importazione completata!\n`;\r
+                summaryHtml += `• Nuovi inseriti: ${result.importati}\n`;\r
+                summaryHtml += `• Aggiornati: ${result.aggiornati}\n`;\r
+                if (result.errori > 0) {\r
+                    summaryHtml += `• Errori: ${result.errori}\n`;\r
+                    result.dettagliErrori.forEach(e => {\r
+                        summaryHtml += `  ↳ ${e.allievo}: ${e.errore}\n`;\r
+                    });\r
+                    resultMsg.className = 'test-result-message';\r
+                } else {\r
+                    resultMsg.className = 'test-result-message success';\r
+                }\r
+                resultMsg.innerText = summaryHtml;\r
+\r
+                // Ricarica gli allievi se siamo nel pannello presenze\r
+                if (AppState.currentTab === 'panel-presenze') {\r
+                    await loadStudentsData();\r
+                }\r
+            } catch (err) {\r
+                resultMsg.className = 'test-result-message error';\r
+                resultMsg.innerText = 'Errore durante l\'importazione: ' + err.message;\r
+            } finally {\r
+                btnImportExternal.disabled = false;\r
+                btnImportExternal.innerHTML = '<i data-lucide="upload-cloud"></i> Avvia Importazione';\r
+                lucide.createIcons();\r
+            }\r
+        });\r
+    }\r
 }
 
 // ==========================================================================
@@ -700,6 +874,8 @@ async function loadCurrentTabContent() {
         await loadActivitiesData();
     } else if (AppState.currentTab === 'panel-armadietti') {
         await loadLockersTabContent();
+    } else if (AppState.currentTab === 'panel-statistiche') {
+        await loadHistoryTabContent();
     }
 }
 
@@ -738,9 +914,133 @@ async function loadStudentsData(silent = false) {
     }
 }
 
+// Caricamento storico
+async function loadHistoryTabContent() {
+    const listContainer = document.getElementById('history-students-list');
+    const dateDisplay = document.getElementById('history-date-display');
+    const datePicker = document.getElementById('history-date-picker');
+    
+    // Aggiorna display data
+    const dateStr = formatDateToISO(AppState.historyDate);
+    const dayName = GIORNI_SETTIMANA[AppState.historyDate.getDay()];
+    const dayNum = AppState.historyDate.getDate();
+    const monthName = MESI_ANNO[AppState.historyDate.getMonth()];
+    const year = AppState.historyDate.getFullYear();
+    
+    if (dateDisplay) {
+        dateDisplay.innerText = `${dayName}, ${dayNum} ${monthName} ${year}`;
+    }
+    if (datePicker) {
+        datePicker.value = dateStr;
+    }
+
+    listContainer.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Caricamento storico in corso...</p>
+        </div>
+    `;
+
+    try {
+        const historyData = await window.CampAPI.fetchHistory(dateStr);
+        
+        if (!historyData || historyData.length === 0) {
+            document.getElementById('history-stat-present').innerText = '0';
+            document.getElementById('history-stat-absent').innerText = '0';
+            document.getElementById('history-stat-precamp').innerText = '0';
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="inbox"></i>
+                    <p>Nessun dato storico trovato per questa data.</p>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        // Filtra solo quelli del camp corrente? Oppure tutti? (Il cron salva tutto)
+        const currentCampData = historyData.filter(s => s.camp === AppState.currentCamp);
+        
+        let presentCount = 0;
+        let absentCount = 0;
+        let precampCount = 0;
+
+        let html = '';
+        
+        if (currentCampData.length === 0) {
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="inbox"></i>
+                    <p>Nessun allievo del ${AppState.currentCamp} camp trovato in questa data.</p>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        currentCampData.forEach(student => {
+            if (student.presente) presentCount++;
+            if (student.presente === false) absentCount++;
+            if (student.pre_camp) precampCount++;
+
+            const isPresent = student.presente === true;
+            const isAbsent = student.presente === false;
+            let statusClass = 'neutral';
+            if (isPresent) statusClass = 'present';
+            if (isAbsent) statusClass = 'absent';
+
+            let tagHtml = '';
+            if (student.pre_camp) tagHtml += `<span class="time-tag">Pre-Camp</span>`;
+            if (student.post_camp) tagHtml += `<span class="time-tag">Post-Camp</span>`;
+            
+            // Info mediche
+            if (student.intolleranze) {
+                tagHtml += `<span class="medical-tag warning" title="${student.intolleranze}"><i data-lucide="alert-circle" style="width:10px;height:10px;margin-right:2px;"></i> Intolleranze</span>`;
+            }
+            if (student.patologie) {
+                tagHtml += `<span class="medical-tag danger" title="${student.patologie}"><i data-lucide="activity" style="width:10px;height:10px;margin-right:2px;"></i> Patologie</span>`;
+            }
+
+            html += `
+                <div class="student-item ${statusClass}" style="opacity: 0.8; pointer-events: none;">
+                    <div class="student-info">
+                        <div class="student-name">
+                            ${student.nome} ${student.cognome}
+                        </div>
+                        <div class="student-meta">
+                            <span class="category-badge ${student.categoria}">${student.categoria.charAt(0).toUpperCase() + student.categoria.slice(1)}</span>
+                            ${tagHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('history-stat-present').innerText = presentCount;
+        document.getElementById('history-stat-absent').innerText = absentCount;
+        document.getElementById('history-stat-precamp').innerText = precampCount;
+        
+        listContainer.innerHTML = html;
+        lucide.createIcons();
+        
+    } catch (err) {
+        if (checkAuthError(err)) return;
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <i data-lucide="alert-triangle"></i>
+                <p>Errore durante il caricamento dello storico.</p>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+}
+
 // Rendering lista allievi
 function renderStudentsList() {
     const listContainer = document.getElementById('students-list');
+    const manualListContainer = document.getElementById('students-list-manual');
+    const titleSync = document.getElementById('title-section-sync');
+    const titleManual = document.getElementById('title-section-manual');
     
     // Filtra la lista allievi per ricerca e filtro pillole
     let filteredStudents = AppState.students;
@@ -758,6 +1058,8 @@ function renderStudentsList() {
         filteredStudents = filteredStudents.filter(s => s.categoria === 'baby');
     } else if (AppState.activeFilter === 'bambino') {
         filteredStudents = filteredStudents.filter(s => s.categoria === 'bambino');
+    } else if (AppState.activeFilter === 'special') {
+        filteredStudents = filteredStudents.filter(s => s.categoria === 'special');
     } else if (AppState.activeFilter === 'present') {
         filteredStudents = filteredStudents.filter(s => s.presente === true);
     } else if (AppState.activeFilter === 'absent') {
@@ -780,109 +1082,157 @@ function renderStudentsList() {
                 <p>Nessun allievo trovato per i filtri impostati.</p>
             </div>
         `;
+        if (manualListContainer) manualListContainer.innerHTML = '';
+        if (titleSync) titleSync.style.display = 'none';
+        if (titleManual) titleManual.style.display = 'none';
         lucide.createIcons();
         return;
     }
 
     // Costruisce la lista di cards
     listContainer.innerHTML = '';
-    
-    filteredStudents.forEach(student => {
-        const card = document.createElement('div');
-        let cardStateClass = 'neutral';
-        if (student.presente === true) cardStateClass = 'present';
-        else if (student.presente === false) cardStateClass = 'absent';
-        
-        card.className = `student-card ${cardStateClass}`;
-        
-        // Verifica orari speciali da mostrare come badge
-        let specialTimesHtml = '';
-        if (student.entrataAnticipata) {
-            specialTimesHtml += `
-                <span class="badge-special-time" title="Clicca per modificare l'orario di ingresso" data-student-id="${student.id}" data-time-type="entry">
-                    <i data-lucide="clock"></i> Entra: ${student.entrataAnticipata}
-                </span>`;
-        }
-        if (student.uscitaAnticipata) {
-            specialTimesHtml += `
-                <span class="badge-special-time" title="Clicca per modificare l'orario di uscita" data-student-id="${student.id}" data-time-type="exit">
-                    <i data-lucide="log-out"></i> Esce: ${student.uscitaAnticipata}
-                </span>`;
-        }
+    if (manualListContainer) manualListContainer.innerHTML = '';
 
-        // Box intolleranze alimentari
-        const hasIntolleranze = student.intolleranze && student.intolleranze.trim() !== '';
-        const intolleranzeBoxClass = hasIntolleranze ? 'medical-box intolleranze' : 'medical-box neutral';
-        const intolleranzeText = hasIntolleranze ? student.intolleranze : 'Nessuna';
+    const syncedStudents = filteredStudents.filter(s => !s.externalId || !s.externalId.startsWith('0X'));
+    const manualStudents = filteredStudents.filter(s => s.externalId && s.externalId.startsWith('0X'));
 
-        // Box patologie sanitarie
-        const hasPatologie = student.patologie && student.patologie.trim() !== '';
-        const patologieBoxClass = hasPatologie ? 'medical-box patologie' : 'medical-box neutral';
-        const patologieText = hasPatologie ? student.patologie : 'Nessuna';
+    if (titleSync) titleSync.style.display = syncedStudents.length > 0 ? 'block' : 'none';
+    if (titleManual) titleManual.style.display = manualStudents.length > 0 ? 'block' : 'none';
 
-        card.innerHTML = `
-            <div class="student-card-header">
-                <div class="student-info-main">
-                    <div class="student-name-row">
-                        <span class="student-name">${student.nome} ${student.cognome}</span>
-                        <button class="btn-edit-student" data-student-id="${student.id}" title="Modifica allievo">
-                            <i data-lucide="edit-3"></i>
-                        </button>
-                    </div>
-                    <div class="badges-row">
-                        <span class="badge-category ${student.categoria}">${student.categoria}</span>
-                    </div>
-                    ${specialTimesHtml ? `<div class="student-times-stack">${specialTimesHtml}</div>` : ''}
-                </div>
-                
-                <div class="presence-buttons-group">
-                    <button class="presence-btn btn-present ${student.presente === true ? 'active' : ''}" data-student-id="${student.id}" data-state="present" title="Segna Presente">
-                        <i data-lucide="check"></i>
-                    </button>
-                    <button class="presence-btn btn-absent ${student.presente === false ? 'active' : ''}" data-student-id="${student.id}" data-state="absent" title="Segna Assente">
-                        <i data-lucide="x"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="student-controls">
-                <div class="camp-switch">
-                    <span>Pre-Camp</span>
-                    <label class="switch-control">
-                        <input type="checkbox" class="toggle-pre-camp" data-student-id="${student.id}" ${student.preCamp ? 'checked' : ''}>
-                        <span class="switch-slider"></span>
-                    </label>
-                </div>
-                <div class="camp-switch">
-                    <span>Post-Camp</span>
-                    <label class="switch-control">
-                        <input type="checkbox" class="toggle-post-camp" data-student-id="${student.id}" ${student.postCamp ? 'checked' : ''}>
-                        <span class="switch-slider"></span>
-                    </label>
-                </div>
-                
-                <div class="${intolleranzeBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le intolleranze alimentari">
-                    <i data-lucide="utensils"></i>
-                    <span class="medical-label">Intolleranze:</span>
-                    <span class="medical-value">${intolleranzeText}</span>
-                </div>
-                
-                <div class="${patologieBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le patologie sanitarie">
-                    <i data-lucide="shield-alert"></i>
-                    <span class="medical-label">Patologie:</span>
-                    <span class="medical-value">${patologieText}</span>
-                </div>
-            </div>
-        `;
-        
+    // Rende allievi sincronizzati
+    syncedStudents.forEach(student => {
+        const card = createStudentCard(student);
         listContainer.appendChild(card);
     });
-    
+
+    // Rende allievi manuali
+    manualStudents.forEach(student => {
+        const card = createStudentCard(student);
+        if (manualListContainer) {
+            manualListContainer.appendChild(card);
+        } else {
+            listContainer.appendChild(card);
+        }
+    });
+
     // Inizializza icone caricate dinamicamente nelle card
     lucide.createIcons();
 
     // Aggancia gli eventi sulle cards appena renderizzate
     bindStudentCardEvents();
+}
+
+// Funzione helper per creare l'elemento card allievo
+function createStudentCard(student) {
+    const card = document.createElement('div');
+    let cardStateClass = 'neutral';
+    if (student.presente === true) cardStateClass = 'present';
+    else if (student.presente === false) cardStateClass = 'absent';
+    
+    card.className = `student-card ${cardStateClass}`;
+    
+    // Verifica orari speciali da mostrare come badge
+    let specialTimesHtml = '';
+    if (student.entrataAnticipata) {
+        specialTimesHtml += `
+            <span class="badge-special-time" title="Clicca per modificare l'orario di ingresso" data-student-id="${student.id}" data-time-type="entry">
+                <i data-lucide="clock"></i> Entra: ${student.entrataAnticipata}
+            </span>`;
+    }
+    if (student.uscitaAnticipata) {
+        specialTimesHtml += `
+            <span class="badge-special-time" title="Clicca per modificare l'orario di uscita" data-student-id="${student.id}" data-time-type="exit">
+                <i data-lucide="log-out"></i> Esce: ${student.uscitaAnticipata}
+            </span>`;
+    }
+
+    // Box intolleranze alimentari
+    const hasIntolleranze = student.intolleranze && student.intolleranze.trim() !== '';
+    const intolleranzeBoxClass = hasIntolleranze ? 'medical-box intolleranze' : 'medical-box neutral';
+    const intolleranzeText = hasIntolleranze ? student.intolleranze : 'Nessuna';
+
+    // Box patologie sanitarie
+    const hasPatologie = student.patologie && student.patologie.trim() !== '';
+    const patologieBoxClass = hasPatologie ? 'medical-box patologie' : 'medical-box neutral';
+    const patologieText = hasPatologie ? student.patologie : 'Nessuna';
+
+    let categoryText = student.categoria;
+    if (student.categoria === 'special') {
+        categoryText = 'Special Camp';
+    }
+
+    card.innerHTML = `
+        <div class="student-card-header">
+            <div class="student-info-main">
+                <div class="student-name-row">
+                    <span class="student-name">${student.nome} ${student.cognome}</span>
+                    <button class="btn-edit-student" data-student-id="${student.id}" title="Modifica allievo">
+                        <i data-lucide="edit-3"></i>
+                    </button>
+                </div>
+                <div class="badges-row">
+                    <span class="badge-category ${student.categoria}">${categoryText}</span>
+                    ${student.colore ? `<span class="badge-category neutral" style="background: rgba(255,255,255,0.1); color: var(--text-main); border: 1px solid var(--border-color);">${student.colore}</span>` : ''}
+                </div>
+                ${specialTimesHtml ? `<div class="student-times-stack">${specialTimesHtml}</div>` : ''}
+            </div>
+            
+            <div class="presence-buttons-group">
+                <button class="presence-btn btn-present ${student.presente === true ? 'active' : ''}" data-student-id="${student.id}" data-state="present" title="Segna Presente">
+                    <i data-lucide="check"></i>
+                </button>
+                <button class="presence-btn btn-absent ${student.presente === false ? 'active' : ''}" data-student-id="${student.id}" data-state="absent" title="Segna Assente">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="student-controls">
+            <div class="camp-switch">
+                <span>Pre-Camp</span>
+                <label class="switch-control">
+                    <input type="checkbox" class="toggle-pre-camp" data-student-id="${student.id}" ${student.preCamp ? 'checked' : ''}>
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            <div class="camp-switch">
+                <span>Post-Camp</span>
+                <label class="switch-control">
+                    <input type="checkbox" class="toggle-post-camp" data-student-id="${student.id}" ${student.postCamp ? 'checked' : ''}>
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            
+            <div class="${intolleranzeBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le intolleranze alimentari">
+                <i data-lucide="utensils"></i>
+                <span class="medical-label">Intolleranze:</span>
+                <span class="medical-value">${intolleranzeText}</span>
+            </div>
+            
+            <div class="${patologieBoxClass}" data-student-id="${student.id}" title="Clicca per modificare le patologie sanitarie">
+                <i data-lucide="shield-alert"></i>
+                <span class="medical-label">Patologie:</span>
+                <span class="medical-value">${patologieText}</span>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+// Funzione helper per ottenere le date ISO da lunedì a venerdì della settimana base
+function getWeekDates(baseDate) {
+    const dates = [];
+    const currentDay = baseDate.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(baseDate);
+    monday.setDate(baseDate.getDate() + mondayOffset);
+    
+    for (let i = 0; i < 5; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(formatDateToISO(d));
+    }
+    return dates;
 }
 
 // Collega gli eventi interni di ciascuna card allievo
@@ -1273,9 +1623,8 @@ async function loadLockersTabContent() {
     if (tallInput) tallInput.value = tallLockers;
     if (lowInput) lowInput.value = lowLockers;
     
-    // Se abbiamo dati salvati o allievi, eseguiamo l'assegnazione iniziale
     if (tallLockers || lowLockers) {
-        runLockerAssignment();
+        renderLockersForTurn();
     } else {
         // Nascondi i risultati se non c'è configurazione
         const lockerStats = document.getElementById('locker-stats');
@@ -1285,7 +1634,7 @@ async function loadLockersTabContent() {
     }
 }
 
-function runLockerAssignment() {
+async function runLockerAssignment() {
     const tallInputVal = document.getElementById('lockers-tall-input').value;
     const lowInputVal = document.getElementById('lockers-low-input').value;
     
@@ -1306,125 +1655,178 @@ function runLockerAssignment() {
     const tallLockers = parseLockers(tallInputVal);
     const lowLockers = parseLockers(lowInputVal);
     
-    // Dividi gli allievi attivi in Bambini (Alti) e Baby (Bassi)
-    // Ordina alfabeticamente per cognome e poi per nome per garantire determinismo
-    const allStudents = [...AppState.students].sort((a, b) => {
-        const compCognome = a.cognome.localeCompare(b.cognome, 'it', { sensitivity: 'base' });
-        if (compCognome !== 0) return compCognome;
-        return a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' });
+    // Resetta le assegnazioni degli allievi locali prima del ricalcolo
+    AppState.students.forEach(s => {
+        s.armadietto = '';
     });
     
-    const kids = allStudents.filter(s => s.categoria === 'bambino');
-    const babies = allStudents.filter(s => s.categoria === 'baby');
+    // Filtra per categorie: Bambino e Special vanno su armadietti Alti, Baby su Bassi
+    const kids = AppState.students.filter(s => s.categoria === 'bambino' || s.categoria === 'special');
+    const babies = AppState.students.filter(s => s.categoria === 'baby');
     
-    // Esegui l'assegnazione per ciascun gruppo
-    const kidsAssignment = assignLockersGroup(kids, tallLockers);
-    const babiesAssignment = assignLockersGroup(babies, lowLockers);
+    // Esegui la risoluzione per turni per ciascun gruppo
+    solveLockersForTurns(kids, tallLockers);
+    solveLockersForTurns(babies, lowLockers);
     
-    // Aggiorna l'interfaccia utente
-    renderLockerResults(kidsAssignment, babiesAssignment, tallLockers.length, lowLockers.length);
-}
-
-function assignLockersGroup(students, lockers) {
-    const assignments = [];
-    const unassigned = [];
-    let sharedCount = 0;
+    // Salva le nuove assegnazioni nel DB
+    const btn = document.getElementById('btn-calculate-lockers');
+    const oldText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;display:inline-block;margin-right:8px;"></div> Salvataggio...';
     
-    if (students.length === 0) {
-        return { assignments, unassigned, sharedCount };
-    }
-    
-    // Se non abbiamo armadietti disponibili
-    if (lockers.length === 0) {
-        return {
-            assignments: [],
-            unassigned: students,
-            sharedCount: 0
-        };
-    }
-    
-    const N = students.length;
-    const M = lockers.length;
-    
-    if (N <= M) {
-        // Abbiamo abbastanza armadietti! Ognuno riceve il proprio armadietto singolo.
-        for (let i = 0; i < N; i++) {
-            assignments.push({
-                locker: lockers[i],
-                students: [students[i]],
-                shared: false
+    try {
+        for (const s of AppState.students) {
+            await window.CampAPI.updateStudentInfo(s.id, {
+                nome: s.nome,
+                cognome: s.cognome,
+                categoria: s.categoria,
+                intolleranze: s.intolleranze,
+                patologie: s.patologie,
+                turni: s.turni || '1',
+                armadietto: s.armadietto || ''
             });
         }
-    } else {
-        // Gli armadietti non bastano! Dobbiamo mettere insieme allievi con lo stesso cognome.
-        // Raggruppiamo gli allievi per cognome (case-insensitive)
+        renderLockersForTurn();
+    } catch (err) {
+        alert("Errore durante il salvataggio degli armadietti su Supabase: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldText;
+    }
+}
+
+// Algoritmo di calcolo armadietti turni (1-13)
+function solveLockersForTurns(students, lockers) {
+    if (students.length === 0 || lockers.length === 0) return;
+    
+    // Calcoliamo turno per turno
+    for (let w = 1; w <= 13; w++) {
+        // 1. Identifica gli allievi iscritti al turno w
+        const enrolled = students.filter(s => {
+            const tList = (s.turni || '1').split(',');
+            return tList.includes(String(w));
+        });
+        
+        if (enrolled.length === 0) continue;
+        
+        // 2. Trova quali armadietti sono occupati in questo turno w
+        const occupiedLockers = enrolled
+            .map(s => s.armadietto)
+            .filter(arm => arm !== '');
+        
+        // 3. Gli allievi del turno w senza armadietto
+        const unassigned = enrolled.filter(s => s.armadietto === '');
+        if (unassigned.length === 0) continue;
+        
+        // 4. Trova gli armadietti liberi nel turno w
+        const availableLockers = lockers.filter(l => !occupiedLockers.includes(l));
+        if (availableLockers.length === 0) continue;
+        
+        // 5. Raggruppa gli allievi non assegnati per cognome (fratelli)
         const groupsBySurname = {};
-        students.forEach(student => {
-            const key = student.cognome.toLowerCase().trim();
-            if (!groupsBySurname[key]) {
-                groupsBySurname[key] = [];
-            }
-            groupsBySurname[key].push(student);
+        unassigned.forEach(s => {
+            const key = s.cognome.toLowerCase().trim();
+            if (!groupsBySurname[key]) groupsBySurname[key] = [];
+            groupsBySurname[key].push(s);
         });
         
-        // Costruiamo la lista di entità richiedenti
         const entities = [];
-        
-        // Ordiniamo le chiavi dei cognomi in modo alfabetico per garantire determinismo
-        const sortedSurnameKeys = Object.keys(groupsBySurname).sort();
-        
-        sortedSurnameKeys.forEach(key => {
-            const list = groupsBySurname[key];
-            if (list.length > 1) {
-                entities.push({
-                    surname: list[0].cognome,
-                    students: list,
-                    isGroup: true
-                });
-            } else {
-                entities.push({
-                    surname: list[0].cognome,
-                    students: list,
-                    isGroup: false
-                });
-            }
+        Object.keys(groupsBySurname).forEach(key => {
+            entities.push({
+                surname: groupsBySurname[key][0].cognome,
+                students: groupsBySurname[key]
+            });
         });
         
-        // Assegniamo gli armadietti disponibili alle entità
-        let lockerIndex = 0;
+        // PRIORITÀ: ordina i gruppi dal più numeroso al più piccolo
+        entities.sort((a, b) => {
+            const sizeComp = b.students.length - a.students.length;
+            if (sizeComp !== 0) return sizeComp;
+            return a.surname.localeCompare(b.surname, 'it', { sensitivity: 'base' });
+        });
         
+        // 6. Assegna l'armadietto
+        let lockerIndex = 0;
         entities.forEach(entity => {
-            if (lockerIndex < M) {
-                assignments.push({
-                    locker: lockers[lockerIndex],
-                    students: entity.students,
-                    shared: entity.students.length > 1
-                });
-                if (entity.students.length > 1) {
-                    sharedCount += entity.students.length;
-                }
-                lockerIndex++;
-            } else {
-                // Finiti gli armadietti! Tutti gli allievi di questa entità rimangono senza armadietto
+            if (lockerIndex < availableLockers.length) {
+                const l = availableLockers[lockerIndex];
                 entity.students.forEach(s => {
-                    unassigned.push(s);
+                    s.armadietto = l;
                 });
+                lockerIndex++;
             }
         });
     }
+}
+
+// Estrae le assegnazioni correnti per il turno selezionato
+function getAssignmentsForTurn(students, lockers, turn) {
+    const enrolled = students.filter(s => (s.turni || '1').split(',').includes(String(turn)));
+    const assignments = [];
+    const unassigned = enrolled.filter(s => s.armadietto === '');
+    
+    // Raggruppa gli assegnati per armadietto
+    const byLocker = {};
+    enrolled.forEach(s => {
+        if (s.armadietto !== '') {
+            if (!byLocker[s.armadietto]) byLocker[s.armadietto] = [];
+            byLocker[s.armadietto].push(s);
+        }
+    });
+    
+    let sharedCount = 0;
+    Object.keys(byLocker).forEach(locker => {
+        const list = byLocker[locker];
+        assignments.push({
+            locker,
+            students: list,
+            shared: list.length > 1
+        });
+        if (list.length > 1) {
+            sharedCount += list.length;
+        }
+    });
+    
+    // Ordina gli armadietti naturalmente
+    assignments.sort((a, b) => a.locker.localeCompare(b.locker, undefined, { numeric: true, sensitivity: 'base' }));
     
     return { assignments, unassigned, sharedCount };
+}
+
+function renderLockersForTurn() {
+    const tallInputVal = document.getElementById('lockers-tall-input').value;
+    const lowInputVal = document.getElementById('lockers-low-input').value;
+    const viewTurnSelect = document.getElementById('lockers-view-turn');
+    const viewTurn = viewTurnSelect ? viewTurnSelect.value : '1';
+    
+    const parseLockers = (inputStr) => {
+        if (!inputStr) return [];
+        return inputStr
+            .split(/[\n,]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    };
+    
+    const tallLockers = parseLockers(tallInputVal);
+    const lowLockers = parseLockers(lowInputVal);
+    
+    const kids = AppState.students.filter(s => s.categoria === 'bambino' || s.categoria === 'special');
+    const babies = AppState.students.filter(s => s.categoria === 'baby');
+    
+    const kidsRes = getAssignmentsForTurn(kids, tallLockers, viewTurn);
+    const babiesRes = getAssignmentsForTurn(babies, lowLockers, viewTurn);
+    
+    renderLockerResults(kidsRes, babiesRes, tallLockers.length, lowLockers.length);
 }
 
 function renderLockerResults(kidsRes, babiesRes, totalTall, totalLow) {
     const lockerStats = document.getElementById('locker-stats');
     const lockerResults = document.getElementById('locker-results-container');
     
-    // Mostra le sezioni
     if (lockerStats) lockerStats.style.display = 'grid';
     if (lockerResults) lockerResults.style.display = 'flex';
     
-    // Calcola e aggiorna i contatori visivi delle statistiche
     const totalLockers = totalTall + totalLow;
     const assignedLockersCount = kidsRes.assignments.length + babiesRes.assignments.length;
     const totalSharedStudents = kidsRes.sharedCount + babiesRes.sharedCount;
@@ -1458,7 +1860,7 @@ function renderLockerResults(kidsRes, babiesRes, totalTall, totalLow) {
             kidsLockersList.innerHTML = `
                 <div class="empty-state">
                     <i data-lucide="inbox"></i>
-                    <p>Nessun armadietto assegnato.</p>
+                    <p>Nessun armadietto assegnato per questo turno.</p>
                 </div>`;
         } else {
             kidsRes.assignments.forEach(item => {
@@ -1505,7 +1907,7 @@ function renderLockerResults(kidsRes, babiesRes, totalTall, totalLow) {
             babyLockersList.innerHTML = `
                 <div class="empty-state">
                     <i data-lucide="inbox"></i>
-                    <p>Nessun armadietto assegnato.</p>
+                    <p>Nessun armadietto assegnato per questo turno.</p>
                 </div>`;
         } else {
             babiesRes.assignments.forEach(item => {
@@ -1532,7 +1934,6 @@ function renderLockerResults(kidsRes, babiesRes, totalTall, totalLow) {
         }
     }
     
-    // Aggiorna le icone Lucide appena inserite
     if (window.lucide) {
         window.lucide.createIcons();
     }
