@@ -508,6 +508,18 @@ const CampAPI = {
         let aggiornati = 0;
         const dettagliErrori = [];
 
+        // Pre-fetch all existing students to do lookups in memory (performance optimization)
+        let dbStudents = [];
+        try {
+            const fetchAllUrl = `${config.url}/rest/v1/allievi?select=id,nome,cognome,external_id,override_manual`;
+            const fetchAllRes = await fetch(fetchAllUrl, { method: 'GET', headers });
+            if (fetchAllRes.ok) {
+                dbStudents = await fetchAllRes.json();
+            }
+        } catch (fetchErr) {
+            console.error("Errore nel pre-fetch degli allievi per importazione:", fetchErr);
+        }
+
         for (let i = 0; i < allievi.length; i++) {
             const a = allievi[i];
             const nomeCompleto = `${a.nome || ''} ${a.cognome || ''}`.trim();
@@ -536,41 +548,48 @@ const CampAPI = {
 
                 // Prima controlla se esiste un allievo manuale (external_id inizia con '0X') con lo stesso nome e cognome
                 let existing = [];
-                const checkManualUrl = `${config.url}/rest/v1/allievi?nome=eq.${encodeURIComponent(payload.nome)}&cognome=eq.${encodeURIComponent(payload.cognome)}&external_id=like.0X%25&select=id,external_id`;
-                const checkManualRes = await fetch(checkManualUrl, { method: 'GET', headers });
+                const existingManual = dbStudents.filter(s => 
+                    s.nome === payload.nome && 
+                    s.cognome === payload.cognome && 
+                    s.external_id && 
+                    s.external_id.startsWith('0X')
+                );
                 
-                if (checkManualRes.ok) {
-                    const existingManual = await checkManualRes.json();
-                    if (existingManual && existingManual.length > 0) {
-                        // Trovato allievo manuale con lo stesso nome/cognome. Chiediamo all'operatore se è la stessa persona
-                        const isSamePerson = confirm(
-                            `Attenzione: L'allievo in importazione "${payload.nome} ${payload.cognome}" coincide con l'allievo inserito manualmente "${payload.nome} ${payload.cognome}" (ID: ${existingManual[0].external_id})?\n\nClicca OK per collegare i record e assegnare l'ID ufficiale, o Annulla per importarli come allievi separati.`
-                        );
-                        if (isSamePerson) {
-                            // Fonde i due allievi aggiornando l'ID dell'allievo manuale con l'ID ufficiale in arrivo
-                            const mergeUrl = `${config.url}/rest/v1/allievi?id=eq.${existingManual[0].id}`;
-                            const mergeRes = await fetch(mergeUrl, {
-                                method: 'PATCH',
-                                headers,
-                                body: JSON.stringify({
-                                    external_id: payload.external_id,
-                                    override_manual: true // Mantiene l'override manuale attivo
-                                })
-                            });
-                            if (!mergeRes.ok) throw new Error(`Fusione record fallita: ${await mergeRes.text()}`);
-                            
-                            // Lo marchiamo come esistente con override_manual attivo per l'aggiornamento
-                            existing = [{ id: existingManual[0].id, override_manual: true }];
+                if (existingManual.length > 0) {
+                    // Trovato allievo manuale con lo stesso nome/cognome. Chiediamo all'operatore se è la stessa persona
+                    const isSamePerson = confirm(
+                        `Attenzione: L'allievo in importazione "${payload.nome} ${payload.cognome}" coincide con l'allievo inserito manualmente "${payload.nome} ${payload.cognome}" (ID: ${existingManual[0].external_id})?\n\nClicca OK per collegare i record e assegnare l'ID ufficiale, o Annulla per importarli come allievi separati.`
+                    );
+                    if (isSamePerson) {
+                        // Fonde i due allievi aggiornando l'ID dell'allievo manuale con l'ID ufficiale in arrivo
+                        const mergeUrl = `${config.url}/rest/v1/allievi?id=eq.${existingManual[0].id}`;
+                        const mergeRes = await fetch(mergeUrl, {
+                            method: 'PATCH',
+                            headers,
+                            body: JSON.stringify({
+                                external_id: payload.external_id,
+                                override_manual: true // Mantiene l'override manuale attivo
+                            })
+                        });
+                        if (!mergeRes.ok) throw new Error(`Fusione record fallita: ${await mergeRes.text()}`);
+                        
+                        // Lo marchiamo come esistente con override_manual attivo per l'aggiornamento
+                        existing = [{ id: existingManual[0].id, override_manual: true }];
+
+                        // Aggiorna l'entry nel cache locale
+                        const idx = dbStudents.findIndex(s => s.id === existingManual[0].id);
+                        if (idx !== -1) {
+                            dbStudents[idx].external_id = payload.external_id;
+                            dbStudents[idx].override_manual = true;
                         }
                     }
                 }
 
                 // Se non c'è stata fusione, cerca l'allievo esistente tramite il suo external_id ufficiale
                 if (existing.length === 0 && payload.external_id && !payload.external_id.startsWith('0X')) {
-                    const checkUrl = `${config.url}/rest/v1/allievi?external_id=eq.${encodeURIComponent(payload.external_id)}&select=id,override_manual`;
-                    const checkRes = await fetch(checkUrl, { method: 'GET', headers });
-                    if (checkRes.ok) {
-                        existing = await checkRes.json();
+                    const match = dbStudents.find(s => s.external_id === payload.external_id);
+                    if (match) {
+                        existing = [{ id: match.id, override_manual: match.override_manual }];
                     }
                 }
 
@@ -605,10 +624,9 @@ const CampAPI = {
                 } else {
                     // INSERIMENTO: POST nuovo allievo
                     const insertUrl = `${config.url}/rest/v1/allievi`;
-                    const insertHeaders = { ...headers, 'Prefer': 'return=minimal' };
                     const insertRes = await fetch(insertUrl, {
                         method: 'POST',
-                        headers: insertHeaders,
+                        headers, // Defaults to return=representation if Prefer is not specified
                         body: JSON.stringify({
                             ...payload,
                             turni: '1',
@@ -619,7 +637,25 @@ const CampAPI = {
                         const err = await insertRes.text();
                         throw new Error(`POST fallito (${insertRes.status}): ${err}`);
                     }
+                    
+                    let newId = null;
+                    try {
+                        const insertedRows = await insertRes.json();
+                        newId = insertedRows && insertedRows[0] ? insertedRows[0].id : null;
+                    } catch (jsonErr) {
+                        console.warn("Impossibile leggere ID allievo inserito:", jsonErr);
+                    }
+
                     importati++;
+
+                    // Inseriamo nel cache locale per evitare duplicati successivi nello stesso file
+                    dbStudents.push({
+                        id: newId,
+                        nome: payload.nome,
+                        cognome: payload.cognome,
+                        external_id: payload.external_id,
+                        override_manual: false
+                    });
                 }
             } catch (err) {
                 dettagliErrori.push({ allievo: nomeCompleto, errore: err.message });

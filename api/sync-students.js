@@ -146,6 +146,20 @@ export default async function handler(req, res) {
     let aggiornati = 0;
     const errori = [];
 
+    // Pre-fetch all existing students to do lookups in memory (performance optimization)
+    let dbStudents = [];
+    try {
+        const fetchAllRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/allievi?select=id,external_id,override_manual`,
+            { method: 'GET', headers }
+        );
+        if (fetchAllRes.ok) {
+            dbStudents = await fetchAllRes.json();
+        }
+    } catch (e) {
+        console.error("Errore nel pre-fetch degli allievi per sync-students:", e);
+    }
+
     for (const a of allievi) {
         const nomeCompleto = `${a.nome || ''} ${a.cognome || ''}`.trim();
         try {
@@ -154,12 +168,9 @@ export default async function handler(req, res) {
             // Cerca allievo esistente per external_id (solo se non vuoto e non inserito in manuale '0X')
             let existing = [];
             if (dati.external_id && !dati.external_id.startsWith('0X')) {
-                const checkRes = await fetch(
-                    `${SUPABASE_URL}/rest/v1/allievi?external_id=eq.${encodeURIComponent(dati.external_id)}&select=id,override_manual`,
-                    { method: 'GET', headers }
-                );
-                if (checkRes.ok) {
-                    existing = await checkRes.json();
+                const match = dbStudents.find(s => s.external_id === dati.external_id);
+                if (match) {
+                    existing = [{ id: match.id, override_manual: match.override_manual }];
                 }
             }
 
@@ -196,7 +207,7 @@ export default async function handler(req, res) {
                     `${SUPABASE_URL}/rest/v1/allievi`,
                     {
                         method: 'POST',
-                        headers: { ...headers, 'Prefer': 'return=minimal' },
+                        headers: { ...headers, 'Prefer': 'return=representation' },
                         body: JSON.stringify({
                             ...dati,
                             intolleranze: '',
@@ -206,7 +217,22 @@ export default async function handler(req, res) {
                     }
                 );
                 if (!insertRes.ok) throw new Error(`POST ${insertRes.status}: ${await insertRes.text()}`);
+                
+                let newId = null;
+                try {
+                    const insertedRows = await insertRes.json();
+                    newId = insertedRows && insertedRows[0] ? insertedRows[0].id : null;
+                } catch (jsonErr) {
+                    console.warn("Impossibile leggere ID allievo inserito in sync-students:", jsonErr);
+                }
+
                 importati++;
+
+                dbStudents.push({
+                    id: newId,
+                    external_id: dati.external_id,
+                    override_manual: false
+                });
             }
         } catch (err) {
             errori.push({ allievo: nomeCompleto, errore: err.message });

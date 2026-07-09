@@ -578,22 +578,6 @@ function registerEventListeners() {
                     };
                     AppState.students.push(localNew);
 
-                    // Aggiunge la presenza per tutta la settimana corrente (Lunedì-Venerdì)
-                    const weekDates = getWeekDates(AppState.currentDate);
-                    for (const dStr of weekDates) {
-                        try {
-                            await window.CampAPI.saveStudentData(AppState.currentCamp, dStr, {
-                                id: newStudent.id,
-                                presente: null,
-                                preCamp: false,
-                                postCamp: false,
-                                entrataAnticipata: '',
-                                uscitaAnticipata: ''
-                            });
-                        } catch (errPres) {
-                            console.error("Errore salvataggio presenza settimanale:", errPres);
-                        }
-                    }
                 }
                 
                 studentModal.classList.add('hidden');
@@ -715,120 +699,120 @@ function registerEventListeners() {
     }
 
     const pillLockersKids = document.getElementById('pill-lockers-kids');
-    const pillLockersBaby = document.getElementById('pill-lockers-baby');\r
-    const lockersKidsPanel = document.getElementById('lockers-kids-panel');\r
-    const lockersBabyPanel = document.getElementById('lockers-baby-panel');\r
-\r
-    if (pillLockersKids && pillLockersBaby) {\r
-        pillLockersKids.addEventListener('click', () => {\r
-            pillLockersKids.classList.add('active');\r
-            pillLockersBaby.classList.remove('active');\r
-            if (lockersKidsPanel) lockersKidsPanel.style.display = 'block';\r
-            if (lockersBabyPanel) lockersBabyPanel.style.display = 'none';\r
-        });\r
-\r
-        pillLockersBaby.addEventListener('click', () => {\r
-            pillLockersBaby.classList.add('active');\r
-            pillLockersKids.classList.remove('active');\r
-            if (lockersBabyPanel) lockersBabyPanel.style.display = 'block';\r
-            if (lockersKidsPanel) lockersKidsPanel.style.display = 'none';\r
-        });\r
-    }\r
-\r
-    // 13. Importazione da API Esterna\r
-    const btnImportExternal = document.getElementById('btn-import-external-api');\r
-    if (btnImportExternal) {\r
-        btnImportExternal.addEventListener('click', async () => {\r
-            const jsonText = (document.getElementById('import-json-textarea').value || '').trim();\r
-            const campTarget = document.getElementById('import-camp-select').value;\r
-            const resultMsg = document.getElementById('import-result-msg');\r
-            const progressWrapper = document.getElementById('import-progress-bar-wrapper');\r
-            const progressFill = document.getElementById('import-progress-fill');\r
-            const progressLabel = document.getElementById('import-progress-label');\r
-\r
-            // Reset UI\r
-            resultMsg.className = 'test-result-message';\r
-            resultMsg.innerText = '';\r
-            progressWrapper.style.display = 'none';\r
-            progressFill.style.width = '0%';\r
-\r
-            if (!jsonText) {\r
-                resultMsg.className = 'test-result-message error';\r
-                resultMsg.innerText = 'Errore: nessun dato JSON inserito.';\r
-                return;\r
-            }\r
-\r
-            // Parse JSON — accetta sia array diretto che oggetto wrapper { "allievi": [...] }\r
-            let allievi;\r
-            try {\r
-                const parsed = JSON.parse(jsonText);\r
-                if (Array.isArray(parsed)) {\r
-                    allievi = parsed;\r
-                } else if (parsed && Array.isArray(parsed.allievi)) {\r
-                    allievi = parsed.allievi;\r
-                } else {\r
-                    throw new Error('Il JSON deve essere un array di allievi oppure un oggetto con chiave "allievi".');\r
-                }\r
-            } catch (parseErr) {\r
-                resultMsg.className = 'test-result-message error';\r
-                resultMsg.innerText = 'Errore nel parsing JSON: ' + parseErr.message;\r
-                return;\r
-            }\r
-\r
-            if (allievi.length === 0) {\r
-                resultMsg.className = 'test-result-message error';\r
-                resultMsg.innerText = 'L\'array è vuoto — nessun allievo da importare.';\r
-                return;\r
-            }\r
-\r
-            // Disabilita il pulsante durante l'importazione\r
-            btnImportExternal.disabled = true;\r
-            btnImportExternal.innerHTML = '<div class="spinner" style="width:16px;height:16px;display:inline-block;margin-right:8px;"></div> Importazione in corso...';\r
-            progressWrapper.style.display = 'block';\r
-\r
-            try {\r
-                const result = await window.CampAPI.importFromExternalAPI(\r
-                    allievi,\r
-                    campTarget,\r
-                    (current, total, nome) => {\r
-                        const pct = Math.round((current / total) * 100);\r
-                        progressFill.style.width = pct + '%';\r
-                        progressLabel.innerText = `${current}/${total} — ${nome}`;\r
-                    }\r
-                );\r
-\r
-                progressFill.style.width = '100%';\r
-                progressLabel.innerText = 'Completato!';\r
-\r
-                // Mostra riepilogo\r
-                let summaryHtml = `✅ Importazione completata!\n`;\r
-                summaryHtml += `• Nuovi inseriti: ${result.importati}\n`;\r
-                summaryHtml += `• Aggiornati: ${result.aggiornati}\n`;\r
-                if (result.errori > 0) {\r
-                    summaryHtml += `• Errori: ${result.errori}\n`;\r
-                    result.dettagliErrori.forEach(e => {\r
-                        summaryHtml += `  ↳ ${e.allievo}: ${e.errore}\n`;\r
-                    });\r
-                    resultMsg.className = 'test-result-message';\r
-                } else {\r
-                    resultMsg.className = 'test-result-message success';\r
-                }\r
-                resultMsg.innerText = summaryHtml;\r
-\r
-                // Ricarica gli allievi se siamo nel pannello presenze\r
-                if (AppState.currentTab === 'panel-presenze') {\r
-                    await loadStudentsData();\r
-                }\r
-            } catch (err) {\r
-                resultMsg.className = 'test-result-message error';\r
-                resultMsg.innerText = 'Errore durante l\'importazione: ' + err.message;\r
-            } finally {\r
-                btnImportExternal.disabled = false;\r
-                btnImportExternal.innerHTML = '<i data-lucide="upload-cloud"></i> Avvia Importazione';\r
-                lucide.createIcons();\r
-            }\r
-        });\r
-    }\r
+    const pillLockersBaby = document.getElementById('pill-lockers-baby');
+    const lockersKidsPanel = document.getElementById('lockers-kids-panel');
+    const lockersBabyPanel = document.getElementById('lockers-baby-panel');
+
+    if (pillLockersKids && pillLockersBaby) {
+        pillLockersKids.addEventListener('click', () => {
+            pillLockersKids.classList.add('active');
+            pillLockersBaby.classList.remove('active');
+            if (lockersKidsPanel) lockersKidsPanel.style.display = 'block';
+            if (lockersBabyPanel) lockersBabyPanel.style.display = 'none';
+        });
+
+        pillLockersBaby.addEventListener('click', () => {
+            pillLockersBaby.classList.add('active');
+            pillLockersKids.classList.remove('active');
+            if (lockersBabyPanel) lockersBabyPanel.style.display = 'block';
+            if (lockersKidsPanel) lockersKidsPanel.style.display = 'none';
+        });
+    }
+
+    // 13. Importazione da API Esterna
+    const btnImportExternal = document.getElementById('btn-import-external-api');
+    if (btnImportExternal) {
+        btnImportExternal.addEventListener('click', async () => {
+            const jsonText = (document.getElementById('import-json-textarea').value || '').trim();
+            const campTarget = document.getElementById('import-camp-select').value;
+            const resultMsg = document.getElementById('import-result-msg');
+            const progressWrapper = document.getElementById('import-progress-bar-wrapper');
+            const progressFill = document.getElementById('import-progress-fill');
+            const progressLabel = document.getElementById('import-progress-label');
+
+            // Reset UI
+            resultMsg.className = 'test-result-message';
+            resultMsg.innerText = '';
+            progressWrapper.style.display = 'none';
+            progressFill.style.width = '0%';
+
+            if (!jsonText) {
+                resultMsg.className = 'test-result-message error';
+                resultMsg.innerText = 'Errore: nessun dato JSON inserito.';
+                return;
+            }
+
+            // Parse JSON — accetta sia array diretto che oggetto wrapper { "allievi": [...] }
+            let allievi;
+            try {
+                const parsed = JSON.parse(jsonText);
+                if (Array.isArray(parsed)) {
+                    allievi = parsed;
+                } else if (parsed && Array.isArray(parsed.allievi)) {
+                    allievi = parsed.allievi;
+                } else {
+                    throw new Error('Il JSON deve essere un array di allievi oppure un oggetto con chiave "allievi".');
+                }
+            } catch (parseErr) {
+                resultMsg.className = 'test-result-message error';
+                resultMsg.innerText = 'Errore nel parsing JSON: ' + parseErr.message;
+                return;
+            }
+
+            if (allievi.length === 0) {
+                resultMsg.className = 'test-result-message error';
+                resultMsg.innerText = 'L\'array è vuoto — nessun allievo da importare.';
+                return;
+            }
+
+            // Disabilita il pulsante durante l'importazione
+            btnImportExternal.disabled = true;
+            btnImportExternal.innerHTML = '<div class="spinner" style="width:16px;height:16px;display:inline-block;margin-right:8px;"></div> Importazione in corso...';
+            progressWrapper.style.display = 'block';
+
+            try {
+                const result = await window.CampAPI.importFromExternalAPI(
+                    allievi,
+                    campTarget,
+                    (current, total, nome) => {
+                        const pct = Math.round((current / total) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressLabel.innerText = `${current}/${total} — ${nome}`;
+                    }
+                );
+
+                progressFill.style.width = '100%';
+                progressLabel.innerText = 'Completato!';
+
+                // Mostra riepilogo
+                let summaryHtml = `✅ Importazione completata!\n`;
+                summaryHtml += `• Nuovi inseriti: ${result.importati}\n`;
+                summaryHtml += `• Aggiornati: ${result.aggiornati}\n`;
+                if (result.errori > 0) {
+                    summaryHtml += `• Errori: ${result.errori}\n`;
+                    result.dettagliErrori.forEach(e => {
+                        summaryHtml += `  ↳ ${e.allievo}: ${e.errore}\n`;
+                    });
+                    resultMsg.className = 'test-result-message';
+                } else {
+                    resultMsg.className = 'test-result-message success';
+                }
+                resultMsg.innerText = summaryHtml;
+
+                // Ricarica gli allievi se siamo nel pannello presenze
+                if (AppState.currentTab === 'panel-presenze') {
+                    await loadStudentsData();
+                }
+            } catch (err) {
+                resultMsg.className = 'test-result-message error';
+                resultMsg.innerText = 'Errore durante l\'importazione: ' + err.message;
+            } finally {
+                btnImportExternal.disabled = false;
+                btnImportExternal.innerHTML = '<i data-lucide="upload-cloud"></i> Avvia Importazione';
+                lucide.createIcons();
+            }
+        });
+    }
 }
 
 // ==========================================================================
@@ -909,7 +893,7 @@ async function loadStudentsData(silent = false) {
                     <p>Si è verificato un errore nel caricamento dei dati.</p>
                 </div>
             `;
-            lucide.createIcons();
+            lucide.createIcons({ root: listContainer });
         }
     }
 }
@@ -954,7 +938,7 @@ async function loadHistoryTabContent() {
                     <p>Nessun dato storico trovato per questa data.</p>
                 </div>
             `;
-            lucide.createIcons();
+            lucide.createIcons({ root: listContainer });
             return;
         }
 
@@ -974,7 +958,7 @@ async function loadHistoryTabContent() {
                     <p>Nessun allievo del ${AppState.currentCamp} camp trovato in questa data.</p>
                 </div>
             `;
-            lucide.createIcons();
+            lucide.createIcons({ root: listContainer });
             return;
         }
 
@@ -1021,7 +1005,7 @@ async function loadHistoryTabContent() {
         document.getElementById('history-stat-precamp').innerText = precampCount;
         
         listContainer.innerHTML = html;
-        lucide.createIcons();
+        lucide.createIcons({ root: listContainer });
         
     } catch (err) {
         if (checkAuthError(err)) return;
@@ -1031,7 +1015,7 @@ async function loadHistoryTabContent() {
                 <p>Errore durante il caricamento dello storico.</p>
             </div>
         `;
-        lucide.createIcons();
+        lucide.createIcons({ root: listContainer });
     }
 }
 
@@ -1085,7 +1069,7 @@ function renderStudentsList() {
         if (manualListContainer) manualListContainer.innerHTML = '';
         if (titleSync) titleSync.style.display = 'none';
         if (titleManual) titleManual.style.display = 'none';
-        lucide.createIcons();
+        lucide.createIcons({ root: listContainer });
         return;
     }
 
@@ -1115,8 +1099,11 @@ function renderStudentsList() {
         }
     });
 
-    // Inizializza icone caricate dinamicamente nelle card
-    lucide.createIcons();
+    // Inizializza icone caricate dinamicamente nelle card in modo mirato
+    lucide.createIcons({ root: listContainer });
+    if (manualListContainer) {
+        lucide.createIcons({ root: manualListContainer });
+    }
 
     // Aggancia gli eventi sulle cards appena renderizzate
     bindStudentCardEvents();
@@ -1414,6 +1401,13 @@ function bindStudentCardEvents() {
                 document.getElementById('student-modal-intolleranze').value = student.intolleranze || '';
                 document.getElementById('student-modal-patologie').value = student.patologie || '';
                 
+                // Imposta checkbox turni in base all'allievo
+                const turniList = (student.turni || '1').split(',');
+                const checkboxes = document.querySelectorAll('.turn-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = turniList.includes(cb.value);
+                });
+
                 // Mostra il pulsante di eliminazione
                 document.getElementById('btn-delete-student').style.display = 'inline-flex';
                 
@@ -1460,7 +1454,7 @@ function renderActivitiesList() {
                 <span style="font-size:11px; color:var(--text-light)">Clicca su "Aggiungi" per programmare un'attività.</span>
             </div>
         `;
-        lucide.createIcons();
+        lucide.createIcons({ root: listContainer });
         return;
     }
 
@@ -1497,7 +1491,7 @@ function renderActivitiesList() {
         listContainer.appendChild(card);
     });
 
-    lucide.createIcons();
+    lucide.createIcons({ root: listContainer });
 
     // Event listener per la cancellazione dell'attività
     const deleteBtns = document.querySelectorAll('.btn-delete-activity');
@@ -1655,6 +1649,9 @@ async function runLockerAssignment() {
     const tallLockers = parseLockers(tallInputVal);
     const lowLockers = parseLockers(lowInputVal);
     
+    // Caching delle assegnazioni degli armadietti per rilevare solo i cambiamenti
+    const oldLockers = new Map(AppState.students.map(s => [s.id, s.armadietto]));
+
     // Resetta le assegnazioni degli allievi locali prima del ricalcolo
     AppState.students.forEach(s => {
         s.armadietto = '';
@@ -1675,16 +1672,20 @@ async function runLockerAssignment() {
     btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;display:inline-block;margin-right:8px;"></div> Salvataggio...';
     
     try {
-        for (const s of AppState.students) {
-            await window.CampAPI.updateStudentInfo(s.id, {
-                nome: s.nome,
-                cognome: s.cognome,
-                categoria: s.categoria,
-                intolleranze: s.intolleranze,
-                patologie: s.patologie,
-                turni: s.turni || '1',
-                armadietto: s.armadietto || ''
-            });
+        const changedStudents = AppState.students.filter(s => s.armadietto !== (oldLockers.get(s.id) || ''));
+        if (changedStudents.length > 0) {
+            const promises = changedStudents.map(s => 
+                window.CampAPI.updateStudentInfo(s.id, {
+                    nome: s.nome,
+                    cognome: s.cognome,
+                    categoria: s.categoria,
+                    intolleranze: s.intolleranze,
+                    patologie: s.patologie,
+                    turni: s.turni || '1',
+                    armadietto: s.armadietto || ''
+                })
+            );
+            await Promise.all(promises);
         }
         renderLockersForTurn();
     } catch (err) {
@@ -1935,7 +1936,7 @@ function renderLockerResults(kidsRes, babiesRes, totalTall, totalLow) {
     }
     
     if (window.lucide) {
-        window.lucide.createIcons();
+        window.lucide.createIcons({ root: document.getElementById('panel-armadietti') });
     }
 }
 
