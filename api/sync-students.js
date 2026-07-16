@@ -16,8 +16,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // Usa la Service Key lato server (mai esposta al frontend)
 const SYNC_API_KEY = process.env.SYNC_API_KEY;         // Chiave segreta che il tecnico deve includere nell'header
 
-// Colori che identificano la categoria "baby" non sono più usati per determinare la categoria,
-// ma salviamo il colore originale così com'è nel database.
+// Colori che identificano la categoria "baby" non sono più usati per determinare la categoria.
+// (Il campo colore è stato rimosso dalla sincronizzazione esterna)
 
 /**
  * Estrae l'anno di nascita a 4 cifre da diversi formati (YYYY-MM-DD o DD/MM/YYYY)
@@ -78,9 +78,8 @@ function trasformaAllievo(a) {
         cognome: (a.cognome || '').trim(),
         categoria: determinaCategoria(a),
         camp: determinaCamp(a),
-        colore: (a.colore || '').trim(),
         patologie: patologie
-        // intolleranze e turni non vengono toccati dall'importatore API
+        // intolleranze, colore e turni non vengono toccati dall'importatore API
     };
 }
 
@@ -142,6 +141,22 @@ export default async function handler(req, res) {
         'Accept': 'application/json'
     };
 
+    // Salva l'importazione automatica come file storico nel database
+    try {
+        const importFileName = `api_sync_${new Date().toISOString().replace(/T/, '_').substring(0, 19).replace(/:/g, '-')}.json`;
+        await fetch(`${SUPABASE_URL}/rest/v1/importazioni`, {
+            method: 'POST',
+            headers: { ...headers, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({
+                nome_file: importFileName,
+                camp: 'api_sync',
+                payload: allievi
+            })
+        });
+    } catch (importErr) {
+        console.error("Errore nel salvataggio storico file importazione:", importErr);
+    }
+
     let importati = 0;
     let aggiornati = 0;
     const errori = [];
@@ -180,14 +195,12 @@ export default async function handler(req, res) {
                 const updatePayload = overrideManual ? {
                     // Se l'allievo è stato modificato in manuale dall'operatore, non sovrascriviamo nome, cognome e categoria
                     camp: dati.camp,
-                    colore: dati.colore,
                     patologie: dati.patologie
                 } : {
                     nome: dati.nome,
                     cognome: dati.cognome,
                     categoria: dati.categoria,
                     camp: dati.camp,
-                    colore: dati.colore,
                     patologie: dati.patologie
                 };
 
