@@ -78,8 +78,50 @@ function trasformaAllievo(a) {
         cognome: (a.cognome || '').trim(),
         categoria: determinaCategoria(a),
         camp: determinaCamp(a),
-        patologie: patologie
-        // intolleranze, colore e turni non vengono toccati dall'importatore API
+        patologie: patologie,
+        
+        // Nuovi campi
+        data_nascita: (a.data_nascita || '').trim(),
+        codice_fiscale: (a.codice_fiscale || '').trim(),
+        comune_nascita: (a.comune_nascita || '').trim(),
+        cognome_referente: (a.cognome_referente || '').trim(),
+        nome_referente: (a.nome_referente || '').trim(),
+        email: (a.email || '').trim(),
+        recapiti_telefonici: (a.recapiti_telefonici || '').trim(),
+        annualita: (a.annualita || '').trim(),
+        gruppo: (a.gruppo || '').trim(),
+        id_preiscrizione: String(a.id_preiscrizione || '').trim(),
+        tipologia: (a.tipologia || '').trim(),
+        num_turni: String(a.num_turni || '').trim(),
+        num_gite: String(a.num_gite || '').trim(),
+        turno1: (a.turno1 || '').trim(),
+        gita1: (a.gita1 || '').trim(),
+        turno2: (a.turno2 || '').trim(),
+        gita2: (a.gita2 || '').trim(),
+        turno3: (a.turno3 || '').trim(),
+        gita3: (a.gita3 || '').trim(),
+        turno4: (a.turno4 || '').trim(),
+        gita4: (a.gita4 || '').trim(),
+        turno5: (a.turno5 || '').trim(),
+        gita5: (a.gita5 || '').trim(),
+        turno6: (a.turno6 || '').trim(),
+        gita6: (a.gita6 || '').trim(),
+        turno7: (a.turno7 || '').trim(),
+        gita7: (a.gita7 || '').trim(),
+        turno8: (a.turno8 || '').trim(),
+        gita8: (a.gita8 || '').trim(),
+        turno9: (a.turno9 || '').trim(),
+        gita9: (a.gita9 || '').trim(),
+        turno10: (a.turno10 || '').trim(),
+        gita10: (a.gita10 || '').trim(),
+        turno11: (a.turno11 || '').trim(),
+        gita11: (a.gita11 || '').trim(),
+        turno12: (a.turno12 || '').trim(),
+        gita12: (a.gita12 || '').trim(),
+        turno13: (a.turno13 || '').trim(),
+        gita13: (a.gita13 || '').trim(),
+        turno14: (a.turno14 || '').trim(),
+        gita14: (a.gita14 || '').trim()
     };
 }
 
@@ -195,13 +237,36 @@ export default async function handler(req, res) {
                 const updatePayload = overrideManual ? {
                     // Se l'allievo è stato modificato in manuale dall'operatore, non sovrascriviamo nome, cognome e categoria
                     camp: dati.camp,
-                    patologie: dati.patologie
+                    patologie: dati.patologie,
+                    data_nascita: dati.data_nascita,
+                    codice_fiscale: dati.codice_fiscale,
+                    comune_nascita: dati.comune_nascita,
+                    cognome_referente: dati.cognome_referente,
+                    nome_referente: dati.nome_referente,
+                    email: dati.email,
+                    recapiti_telefonici: dati.recapiti_telefonici,
+                    annualita: dati.annualita,
+                    gruppo: dati.gruppo,
+                    id_preiscrizione: dati.id_preiscrizione,
+                    tipologia: dati.tipologia,
+                    num_turni: dati.num_turni,
+                    num_gite: dati.num_gite,
+                    turno1: dati.turno1, gita1: dati.gita1,
+                    turno2: dati.turno2, gita2: dati.gita2,
+                    turno3: dati.turno3, gita3: dati.gita3,
+                    turno4: dati.turno4, gita4: dati.gita4,
+                    turno5: dati.turno5, gita5: dati.gita5,
+                    turno6: dati.turno6, gita6: dati.gita6,
+                    turno7: dati.turno7, gita7: dati.gita7,
+                    turno8: dati.turno8, gita8: dati.gita8,
+                    turno9: dati.turno9, gita9: dati.gita9,
+                    turno10: dati.turno10, gita10: dati.gita10,
+                    turno11: dati.turno11, gita11: dati.gita11,
+                    turno12: dati.turno12, gita12: dati.gita12,
+                    turno13: dati.turno13, gita13: dati.gita13,
+                    turno14: dati.turno14, gita14: dati.gita14
                 } : {
-                    nome: dati.nome,
-                    cognome: dati.cognome,
-                    categoria: dati.categoria,
-                    camp: dati.camp,
-                    patologie: dati.patologie
+                    ...dati // Aggiorniamo tutti i campi presi dalla trasformazione
                 };
 
                 const updateRes = await fetch(
